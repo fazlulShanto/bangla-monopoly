@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "space grotesk",
+        "createdAt": "2026-11-05T17:53:26.923Z",
+        "reason": "Agent: DESIGN.md line 15 explicitly specifies Space Grotesk for display typography. Preserve this established design choice during the requested intro removal."
+      }
+    ]
+  }
+}

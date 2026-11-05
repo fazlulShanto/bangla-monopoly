@@ -1,0 +1,227 @@
+import { describe, expect, test } from 'bun:test';
+import { BOARD, GAME_CONFIG, GO_SALARY, STARTING_CASH, type Die } from '@deshi/game';
+import { applyAction, chooseBotAction, createGame, gameView, legalActions, rentFor, RuleError, type GameState } from './game';
+
+const PLAYERS = [{ id: 'a', name: 'Asha' }, { id: 'b', name: 'Bashir' }, { id: 'c', name: 'Chitra' }];
+function game(count = 2): GameState { return createGame({ players: PLAYERS.slice(0, count), seed: 918273 }); }
+function player(state: GameState, id = 'a') {
+  const found = state.players.find(candidate => candidate.id === id);
+  if (!found) throw new Error('Missing fixture player');
+  return found;
+}
+function seedFor(first: Die, second: Die): number {
+  for (let seed = 1; seed < 1_000_000; seed += 1) {
+    let value = seed;
+    const values: number[] = [];
+    for (let roll = 0; roll < 2; roll += 1) {
+      value ^= value << 13; value ^= value >>> 17; value ^= value << 5;
+      values.push(Math.floor((value >>> 0) / 0x100000000 * 6) + 1);
+    }
+    if (values[0] === first && values[1] === second) return seed;
+  }
+  throw new Error('No fixture seed');
+}
+function roll(state: GameState, first: Die, second: Die): GameState {
+  if (state.status !== 'playing') throw new Error('Fixture game finished');
+  state.seed = seedFor(first, second);
+  return applyAction(state, state.turn.playerId, { type: 'roll' });
+}
+
+describe('Bangladesh rules', () => {
+  test('board has 40 ordered spaces and eight complete groups', () => {
+    expect(BOARD.map(tile => tile.id)).toEqual(Array.from({ length: 40 }, (_, index) => index));
+    expect(BOARD.filter(tile => tile.kind === 'street')).toHaveLength(22);
+    expect(BOARD[39]?.name).toBe('Sitakunda');
+    expect(new Set(BOARD.flatMap(tile => tile.kind === 'street' ? [tile.group] : [])).size).toBe(8);
+  });
+  test('seeded dice/cards are reproducible and input snapshots stay unchanged', () => {
+    const before = game();
+    const saved = structuredClone(before);
+    expect(applyAction(before, 'a', { type: 'roll' })).toEqual(applyAction(saved, 'a', { type: 'roll' }));
+    expect(before).toEqual(saved);
+    expect(before.players.every(candidate => candidate.cash === STARTING_CASH)).toBe(true);
+  });
+  test('buying pays the bank and grants the landed deed', () => {
+    const state = game();
+    player(state).position = 39;
+    const landed = roll(state, 1, 3);
+    expect(player(landed).cash).toBe(STARTING_CASH + GO_SALARY);
+    expect(landed.status === 'playing' && landed.turn).toEqual({ playerId: 'a', phase: 'purchase', tile: 3 });
+    const bought = applyAction(landed, 'a', { type: 'buy' });
+    expect(bought.deeds[3]).toEqual({ ownerId: 'a', level: 0 });
+    expect(player(bought).cash).toBe(STARTING_CASH + GO_SALARY - GAME_CONFIG.properties.gazipur.price);
+  });
+  test('declining leaves the deed at the bank; invalid actors cannot move', () => {
+    const state = game();
+    player(state).position = 39;
+    const landed = roll(state, 1, 3);
+    expect(() => applyAction(landed, 'b', { type: 'buy' })).toThrow(RuleError);
+    expect(() => applyAction(landed, 'a', { type: 'roll' })).toThrow(RuleError);
+    const declined = applyAction(landed, 'a', { type: 'decline' });
+    expect(declined.deeds[3]).toBeUndefined();
+    expect(declined.status === 'playing' && declined.turn.phase).toBe('end');
+  });
+  test('rent transfers cash and an unimproved complete group doubles rent', () => {
+    const state = game();
+    state.deeds[1] = { ownerId: 'b', level: 0 };
+    state.deeds[3] = { ownerId: 'b', level: 0 };
+    player(state).position = 38;
+    const landed = roll(state, 1, 2);
+    const rent = GAME_CONFIG.properties.dhaka.rent[0] * 2;
+    expect(player(landed).cash).toBe(STARTING_CASH + GO_SALARY - rent);
+    expect(player(landed, 'b').cash).toBe(STARTING_CASH + rent);
+    expect(rentFor(state, 3, 7)).toBe(GAME_CONFIG.properties.gazipur.rent[0] * 2);
+  });
+  test('airport rent follows ownership count and utility rent follows dice', () => {
+    const state = game();
+    state.deeds[5] = { ownerId: 'b', level: 0 };
+    expect(rentFor(state, 5, 7)).toBe(25);
+    for (const id of [15, 25, 35]) state.deeds[id] = { ownerId: 'b', level: 0 };
+    expect(rentFor(state, 5, 7)).toBe(200);
+    state.deeds[12] = { ownerId: 'b', level: 0 };
+    expect(rentFor(state, 12, 9)).toBe(36);
+    state.deeds[28] = { ownerId: 'b', level: 0 };
+    expect(rentFor(state, 12, 9)).toBe(90);
+  });
+  test('building requires a complete group and even levels through hotels', () => {
+    let state = game();
+    player(state).cash = 10_000;
+    state.deeds[1] = { ownerId: 'a', level: 0 };
+    expect(() => applyAction(state, 'a', { type: 'build', tile: 1 })).toThrow(RuleError);
+    state.deeds[3] = { ownerId: 'a', level: 0 };
+    for (let level = 1; level <= 5; level += 1) {
+      state = applyAction(state, 'a', { type: 'build', tile: 1 });
+      expect(() => applyAction(state, 'a', { type: 'build', tile: 1 })).toThrow(RuleError);
+      state = applyAction(state, 'a', { type: 'build', tile: 3 });
+    }
+    expect(state.deeds[1]?.level).toBe(5);
+    expect(state.deeds[3]?.level).toBe(5);
+    expect(player(state).cash).toBe(10_000 - 5 * (GAME_CONFIG.properties.dhaka.buildCost + GAME_CONFIG.properties.gazipur.buildCost));
+    expect(rentFor(state, 3, 7)).toBe(GAME_CONFIG.properties.gazipur.rent[5]);
+    expect(legalActions(state, 'a').some(action => action.type === 'build')).toBe(false);
+  });
+  test('a player cannot build with insufficient cash', () => {
+    const state = game();
+    state.deeds[1] = { ownerId: 'a', level: 0 };
+    state.deeds[3] = { ownerId: 'a', level: 0 };
+    player(state).cash = 49;
+    expect(() => applyAction(state, 'a', { type: 'build', tile: 1 })).toThrow(RuleError);
+  });
+  test('doubles grant another roll and triple doubles send the player to jail', () => {
+    let state = game();
+    for (let count = 1; count <= 3; count += 1) {
+      player(state).position = 12;
+      state = roll(state, 4, 4);
+      if (count < 3) {
+        state = applyAction(state, 'a', { type: 'endTurn' });
+        expect(state.status === 'playing' && state.turn).toEqual({ playerId: 'a', phase: 'roll' });
+      }
+    }
+    expect(player(state).position).toBe(10);
+    expect(player(state).jail).toEqual({ failedRolls: 0 });
+    state = applyAction(state, 'a', { type: 'endTurn' });
+    expect(state.status === 'playing' && state.turn.playerId).toBe('b');
+  });
+  test('going to jail does not collect salary and bail unlocks a roll', () => {
+    let state = game();
+    player(state).position = 22;
+    state = roll(state, 3, 5);
+    expect(player(state).position).toBe(10);
+    expect(player(state).cash).toBe(1500);
+    if (state.status !== 'playing') throw new Error('Unexpected fixture winner');
+    state.turn = { playerId: 'a', phase: 'roll' };
+    state = applyAction(state, 'a', { type: 'payBail' });
+    expect(player(state).cash).toBe(1450);
+    expect(player(state).jail).toBeNull();
+    expect(state.status === 'playing' && state.turn.phase).toBe('roll');
+  });
+  test('a double releases a prisoner without an extra roll', () => {
+    let state = game();
+    player(state).position = 10;
+    player(state).jail = { failedRolls: 1 };
+    state = roll(state, 5, 5);
+    expect(player(state).jail).toBeNull();
+    expect(player(state).cash).toBe(1500);
+    state = applyAction(state, 'a', { type: 'endTurn' });
+    expect(state.status === 'playing' && state.turn.playerId).toBe('b');
+  });
+  test('the third failed jail roll charges bail and can cause bankruptcy', () => {
+    const state = game();
+    player(state).position = 10;
+    player(state).jail = { failedRolls: 2 };
+    player(state).cash = 49;
+    const after = roll(state, 1, 2);
+    expect(player(after).status).toBe('bankrupt');
+    expect(after.status === 'finished' && after.winnerId).toBe('b');
+    expect(player(after).position).toBe(10);
+  });
+  test('two failed jail rolls keep the player in jail', () => {
+    let state = game();
+    player(state).jail = { failedRolls: 0 };
+    player(state).position = 10;
+    state = roll(state, 1, 2);
+    expect(player(state).jail).toEqual({ failedRolls: 1 });
+    if (state.status !== 'playing') throw new Error('Unexpected fixture winner');
+    state.turn = { playerId: 'a', phase: 'roll' };
+    state = roll(state, 1, 2);
+    expect(player(state).jail).toEqual({ failedRolls: 2 });
+    expect(player(state).position).toBe(10);
+  });
+  test('chance advances to Go with salary and treasure pays its award', () => {
+    const chance = game();
+    chance.chanceDeck = [1, ...chance.chanceDeck.filter(card => card !== 1)];
+    player(chance).position = 1;
+    const advanced = roll(chance, 2, 4);
+    expect(player(advanced).position).toBe(0);
+    expect(player(advanced).cash).toBe(1700);
+    expect(advanced.chanceIndex).toBe(1);
+    const treasure = game();
+    treasure.treasureDeck = [0, ...treasure.treasureDeck.filter(card => card !== 0)];
+    player(treasure).position = 38;
+    const awarded = roll(treasure, 1, 3);
+    expect(player(awarded).cash).toBe(1900);
+  });
+  test('unpayable rent transfers remaining cash and deeds, then advances play', () => {
+    const state = game(3);
+    player(state).cash = 10;
+    player(state).position = 18;
+    state.deeds[21] = { ownerId: 'b', level: 0 };
+    state.deeds[3] = { ownerId: 'a', level: 2 };
+    const after = roll(state, 1, 2);
+    expect(player(after).cash).toBe(0);
+    expect(player(after).status).toBe('bankrupt');
+    expect(player(after, 'b').cash).toBe(1510);
+    expect(after.deeds[3]).toEqual({ ownerId: 'b', level: 2 });
+    expect(after.status === 'playing' && after.turn.playerId).toBe('b');
+  });
+  test('bank debt returns deeds and the last solvent player wins', () => {
+    const state = game();
+    player(state).cash = 10;
+    player(state).position = 1;
+    state.deeds[3] = { ownerId: 'a', level: 0 };
+    const after = roll(state, 1, 2);
+    expect(after.status === 'finished' && after.winnerId).toBe('b');
+    expect(after.deeds[3]).toBeUndefined();
+    expect(gameView(after, 'b').legalActions).toEqual([]);
+  });
+  test('an out-of-turn player can resign and cannot act afterward', () => {
+    const after = applyAction(game(), 'b', { type: 'resign' });
+    expect(after.status === 'finished' && after.winnerId).toBe('a');
+    expect(() => applyAction(after, 'a', { type: 'roll' })).toThrow(RuleError);
+  });
+  test('four bots finish a complete seeded game through the same legal actions', () => {
+    let state = createGame({ players: [...PLAYERS, { id: 'd', name: 'Dipa' }], seed: 4 });
+    let moves = 0;
+    while (state.status === 'playing' && moves < 20_000) {
+      const actor = state.turn.playerId;
+      const action = chooseBotAction(state, actor);
+      if (!action) throw new Error('Bot has no legal action');
+      expect(action.type).not.toBe('resign');
+      state = applyAction(state, actor, action);
+      expect(state.players.every(candidate => candidate.cash >= 0 && candidate.position >= 0 && candidate.position < 40)).toBe(true);
+      moves += 1;
+    }
+    expect(state.status).toBe('finished');
+    expect(state.players.filter(candidate => candidate.status === 'active')).toHaveLength(1);
+  });
+});

@@ -1,0 +1,10 @@
+{$DOMAIN} {
+    encode zstd gzip
+    @websocket path /app/*
+    reverse_proxy @websocket soketi:6001
+    reverse_proxy app:3001
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}

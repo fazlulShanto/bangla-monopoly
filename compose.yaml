@@ -1,0 +1,72 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MONGO_DB: ${MONGO_DB:-deshi_tycoon}
+      SOKETI_HOST: soketi
+      SOKETI_PORT: 6001
+    depends_on:
+      soketi:
+        condition: service_healthy
+    expose:
+      - "3001"
+    stop_grace_period: 20s
+
+  soketi:
+    image: quay.io/soketi/soketi:1.6-16-alpine
+    restart: unless-stopped
+    init: true
+    entrypoint: ["node", "/runtime/soketi.cjs"]
+    environment:
+      REDIS_URI: ${REDIS_URI:?Set REDIS_URI in .env}
+      SOKETI_APP_ID: ${SOKETI_APP_ID:?Run bun run setup first}
+      SOKETI_APP_KEY: ${SOKETI_APP_KEY:?Run bun run setup first}
+      SOKETI_APP_SECRET: ${SOKETI_APP_SECRET:?Run bun run setup first}
+    ports:
+      - "127.0.0.1:6001:6001"
+    volumes:
+      - ./docker/soketi.cjs:/runtime/soketi.cjs:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:6001/ready', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+  https:
+    image: caddy:2-alpine
+    profiles: [https]
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile.https:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

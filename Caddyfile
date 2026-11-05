@@ -1,0 +1,5 @@
+:80 {
+    @websocket path /app/*
+    reverse_proxy @websocket soketi:6001
+    reverse_proxy app:3001
+}
