@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { Failure } from '@deshi/game';
 import { z } from 'zod';
 import { RoomService, type Credentials } from './rooms';
-import { chatSchema, createSchema, joinSchema, resumeSchema, roomCommandSchema } from './schema';
+import { createSchema, joinSchema, resumeSchema, roomCommandSchema } from './schema';
 import { configuredRealtime, type RealtimeGateway } from './realtime';
 import { MemoryRoomStore, MongoRoomStore, type RoomStore } from './store';
 
@@ -59,11 +59,11 @@ export async function createApp(options: { store: RoomStore; realtime?: Realtime
   const realtime = options.realtime ?? configuredRealtime();
   const rooms = new RoomService(options.store, realtime, options.botDelay);
   const rates = new Map<string, { count: number; start: number }>();
-  function consume(request: Request, address: string, lane: 'entry' | 'chat' | 'command'): boolean {
+  function consume(request: Request, address: string, lane: 'entry' | 'command'): boolean {
     const key = `${lane}:${lane === 'entry' ? address : createHash('sha256').update(request.headers.get('authorization') ?? address).digest('hex')}`;
     const now = Date.now();
-    const duration = lane === 'chat' ? 10_000 : 60_000;
-    const limit = lane === 'entry' ? 120 : lane === 'chat' ? 8 : 240;
+    const duration = 60_000;
+    const limit = lane === 'entry' ? 120 : 240;
     let rate = rates.get(key);
     if (!rate || now - rate.start >= duration) { rate = { count: 0, start: now }; rates.set(key, rate); }
     rate.count += 1;
@@ -86,14 +86,13 @@ export async function createApp(options: { store: RoomStore; realtime?: Realtime
           if (request.method !== 'POST') return json({ ok: false, code: 'NOT_FOUND', message: 'Endpoint not found.' } satisfies Failure, 404);
           const length = Number(request.headers.get('content-length') ?? 0);
           if (length > 16_384) return json(invalidInput('The request is too large.'), 413);
-          const lane = url.pathname === '/api/rooms' || url.pathname === '/api/rooms/join' || url.pathname === '/api/session/resume' ? 'entry' : url.pathname === '/api/chat' ? 'chat' : 'command';
+          const lane = url.pathname === '/api/rooms' || url.pathname === '/api/rooms/join' || url.pathname === '/api/session/resume' ? 'entry' : 'command';
           if (!consume(request, currentServer.requestIP(request)?.address ?? 'unknown', lane)) return reply({ ok: false, code: 'RATE_LIMIT', message: 'A little too fast. Try again in a moment.' } satisfies Failure);
           switch (url.pathname) {
             case '/api/rooms': return reply(await rooms.create(await body(request, createSchema)));
             case '/api/rooms/join': return reply(await rooms.join(await body(request, joinSchema)));
             case '/api/session/resume': return reply(await rooms.resume((await body(request, resumeSchema)).resumeToken));
             case '/api/commands': return reply(await rooms.command(credentials(request), await body(request, roomCommandSchema)));
-            case '/api/chat': return reply(await rooms.chat(credentials(request), await body(request, chatSchema)));
             case '/api/heartbeat': await body(request, emptySchema); return reply(await rooms.snapshot(credentials(request), true));
             case '/api/disconnect': await body(request, emptySchema); return reply(await rooms.disconnect(credentials(request)));
             case '/api/pusher/auth': {

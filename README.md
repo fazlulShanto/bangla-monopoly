@@ -32,7 +32,7 @@ bun run build
 bun run test:realtime
 ```
 
-The realtime check requires the running Soketi service and your MongoDB connection. It starts its own backend processes and uses real Pusher private subscriptions. A separate `deshi_tycoon_smoke_*` database holds the test game. The check restarts the backend and verifies saved seats, balances, positions, dice, chat, authorization, and duplicate request handling. It does not change existing game rooms.
+The realtime check requires the running Soketi service and your MongoDB connection. It starts its own backend processes and uses real Pusher private subscriptions. A separate `deshi_tycoon_smoke_*` database holds the test game. The check restarts the backend and verifies saved seats, balances, positions, dice, authorization, and duplicate request handling. It does not change existing game rooms.
 
 ## Deploy on Dokploy
 

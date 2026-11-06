@@ -4,12 +4,12 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Pusher from 'pusher-js';
 import { z } from 'zod';
-import type { ChatMessage, ChatReply, CommandReply, EnterReply, Failure, RoomCommand, RoomView, SnapshotReply } from '@deshi/game';
+import type { CommandReply, EnterReply, Failure, RoomCommand, RoomView, SnapshotReply } from '@deshi/game';
 
 export type Running = { url: string; stop(): Promise<void> };
 export type StartServer = () => Promise<Running>;
 type Entered = Extract<EnterReply, { ok: true }>;
-type Peer = { entry: Entered; view: RoomView; chat: ChatMessage[]; pusher: Pusher; hintCount: number; replaced: boolean };
+type Peer = { entry: Entered; view: RoomView; pusher: Pusher; hintCount: number; replaced: boolean };
 const authResponseSchema = z.object({ auth: z.string() });
 const configSchema = z.object({ key: z.string().min(1), url: z.string().url().optional() });
 const hintSchema = z.object({ revision: z.number().int().nonnegative() }).strict();
@@ -34,7 +34,7 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
   async function refresh(peer: Peer): Promise<void> {
     const response = await fetch(`${server.url}/api/session`, { headers: headers(peer.entry), signal: AbortSignal.timeout(10_000) });
     const snapshot: SnapshotReply = await response.json();
-    if (snapshot.ok && snapshot.view.revision >= peer.view.revision) { peer.view = snapshot.view; peer.chat = snapshot.chat; }
+    if (snapshot.ok && snapshot.view.revision >= peer.view.revision) peer.view = snapshot.view;
   }
   async function connect(entry: Entered): Promise<Peer> {
     const config = configSchema.parse(await fetch(`${server.url}/api/realtime`).then(response => response.json()));
@@ -49,7 +49,7 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
           .catch(() => callback(new Error('Private channel authorization failed'), null));
       } },
     });
-    const peer: Peer = { entry, view: entry.view, chat: entry.chat, pusher, hintCount: 0, replaced: false };
+    const peer: Peer = { entry, view: entry.view, pusher, hintCount: 0, replaced: false };
     peers.push(peer);
     const channel = pusher.subscribe(entry.channel);
     let subscribed = false;
@@ -64,7 +64,8 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
   }
   async function command(peer: Peer, value: RoomCommand, requestId = randomUUID()): Promise<CommandReply> {
     const result = await post<CommandReply>('/api/commands', { requestId, expectedRevision: peer.view.revision, command: value }, peer.entry);
-    if (result.ok) { peer.view = result.view; peer.chat = result.chat; } else if (result.view) peer.view = result.view;
+    if (result.ok) peer.view = result.view;
+    else if (result.view) peer.view = result.view;
     return result;
   }
   try {
@@ -115,10 +116,6 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
     assert.equal(host.view.game?.trades.length, 0, 'Acceptance removes the pending trade');
     successful(await command(friend, { type: 'trade', action: { type: 'offer', toPlayerId: created.playerId, give: { cash: 10, tiles: [] }, receive: { cash: 0, tiles: [] } } }));
     await waitUntil(() => host.view.game?.trades.length === 1, 'pending trade saved before restart');
-    const chatRequest = { requestId: randomUUID(), text: 'Shubho khela!' };
-    successful(await post<ChatReply>('/api/chat', chatRequest, friend.entry));
-    successful(await post<ChatReply>('/api/chat', chatRequest, friend.entry));
-    await waitUntil(() => host.chat.filter(message => message.text === chatRequest.text).length === 1, 'chat hint and snapshot');
     const forbidden = await fetch(`${server.url}/api/pusher/auth`, { method: 'POST', headers: { ...headers(host.entry), 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ socket_id: host.pusher.connection.socket_id ?? '1.1', channel_name: friend.entry.channel }) });
     assert.equal(forbidden.status, 403, 'A seat cannot subscribe to another private channel');
     const afterRoll = structuredClone(host.view.game);
@@ -140,7 +137,6 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
     const acceptedRetry = successful(await post<CommandReply>('/api/commands', acceptRequest, hostAgain.entry));
     assert.equal(acceptedRetry.revision, accepted.revision, 'Accepted trades deduplicate across restart');
     assert.deepEqual(acceptedRetry.view.game?.players, afterRoll?.players, 'Retrying an accepted trade never transfers cash twice');
-    assert.equal(hostAgain.chat.filter(message => message.text === chatRequest.text).length, 1, 'Mongo preserves deduplicated chat');
     const restartDuplicate = successful(await post<CommandReply>('/api/commands', rollRequest, hostAgain.entry));
     assert.equal(restartDuplicate.revision, rolled.revision, 'Durable command receipts survive restart');
     const replacementEntry = entered(await post<EnterReply>('/api/session/resume', { resumeToken: joined.resumeToken }));
@@ -154,7 +150,7 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
     assert(!revoked.ok && revoked.code === 'INVALID_SESSION', 'Leave revokes the resume credential');
     assert(host.hintCount > 0 && friend.hintCount > 0 && hostAgain.hintCount > 0, 'Soketi delivered real private revision hints');
     assert((await fetch(`${server.url}/api/health`)).ok, 'Mongo and Soketi health are ready');
-    return { code: created.view.code, checks: ['real Pusher private subscriptions', 'revision-only hints', 'HTTP actor binding', 'channel authorization', 'host/ready gates', 'shared money and dice', 'out-of-turn trade offers', 'atomic accepted trade balances', 'pending trade persistence', 'accepted trade replay protection', 'stale refresh', 'durable entry and command receipts', 'chat', 'Mongo process restart', 'resume generation replacement', 'forfeit/winner', 'credential revocation', 'Mongo and Soketi health'] };
+    return { code: created.view.code, checks: ['real Pusher private subscriptions', 'revision-only hints', 'HTTP actor binding', 'channel authorization', 'host/ready gates', 'shared money and dice', 'out-of-turn trade offers', 'atomic accepted trade balances', 'pending trade persistence', 'accepted trade replay protection', 'stale refresh', 'durable entry and command receipts', 'Mongo process restart', 'resume generation replacement', 'forfeit/winner', 'credential revocation', 'Mongo and Soketi health'] };
   } finally { for (const peer of peers) peer.pusher.disconnect(); await server.stop(); }
 }
 

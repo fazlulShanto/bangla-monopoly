@@ -35,7 +35,6 @@ export const createSchema = z.object({ kind: z.enum(['friends', 'practice']), na
 export const joinSchema = z.object({ code, name, token, requestId, resumeToken }).strict();
 export const resumeSchema = z.object({ resumeToken }).strict();
 export const roomCommandSchema = z.object({ requestId, expectedRevision: z.number().int().nonnegative(), command: commandSchema }).strict();
-export const chatSchema = z.object({ requestId, text: z.string().trim().min(1).max(280).regex(/^[^\p{Cc}]+$/u) }).strict();
 
 const playerSchema = z.object({
   id: z.string(), cash: z.number().int().nonnegative(), position: z.number().int().min(0).max(39),
@@ -74,7 +73,8 @@ export const roomSchema = z.object({
     entryRequestId: z.string().nullable().default(null), entryKind: z.enum(['create', 'join']).nullable().default(null),
   })).max(6),
   game: gameSchema.nullable(),
-  chat: z.array(z.object({ id: z.string(), playerId: z.string(), name: z.string(), text: z.string(), sentAt: z.number() })),
+  // Keep legacy room data intact when an existing room is saved.
+  chat: z.unknown().optional(),
   requests: z.array(z.object({ playerId: z.string(), requestId: z.string(), revision: z.number().int(), kind: z.enum(['command', 'chat']) })),
   createdAt: z.number(), updatedAt: z.number(), writeId: z.string().default(''),
 });

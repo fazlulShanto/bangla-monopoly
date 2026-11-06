@@ -51,6 +51,29 @@ async function friends(service: RoomService) {
 }
 
 describe('durable HTTP room service', () => {
+  test('existing rooms retain old data while room replies omit chat', async () => {
+    const store = new MemoryRoomStore();
+    let service = new RoomService(store, publisher);
+    try {
+      const host = success(await service.create(createInput()));
+      const saved = await store.get(host.view.code);
+      if (!saved) throw new Error('Missing saved room');
+      const requestId = randomUUID();
+      const oldChat = [{ id: randomUUID(), playerId: host.playerId, name: 'Asha', text: 'Hello', sentAt: 1 }];
+      const legacy = roomSchema.parse({ ...saved, chat: oldChat, requests: [{ playerId: host.playerId, requestId, revision: saved.revision, kind: 'chat' }] });
+      await store.save(legacy, saved.revision);
+      await service.close();
+      service = new RoomService(store, publisher);
+
+      const snapshot = success(await service.snapshot(credentials(host)));
+      expect(snapshot).not.toHaveProperty('chat');
+      const updated = success(await service.command(credentials(host), { requestId, expectedRevision: snapshot.view.revision, command: { type: 'addBot' } }));
+      expect(updated.view.seats).toHaveLength(2);
+      expect(updated).not.toHaveProperty('chat');
+      expect((await store.get(host.view.code))?.chat).toEqual(oldChat);
+    } finally { await service.close(); }
+  });
+
   test('the host sets starting cash, guests see it, and every player receives it once', async () => {
     const store = new MemoryRoomStore();
     let service = new RoomService(store, publisher);

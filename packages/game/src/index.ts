@@ -105,12 +105,10 @@ export type RoomCommand =
   | { type: 'leave' }
   | { type: 'play'; action: GameAction }
   | { type: 'trade'; action: TradeAction };
-export type ChatMessage = { id: string; playerId: string; name: string; text: string; sentAt: number };
 export type Failure = { ok: false; code: string; message: string; view?: RoomView };
 export type CreateRoom = { kind: 'friends' | 'practice'; name: string; token: TokenId; botCount?: number; startingCash?: number; requestId: string; resumeToken: string };
 export type JoinRoom = { code: string; name: string; token: TokenId; requestId: string; resumeToken: string };
-export type EnterReply = Failure | { ok: true; playerId: string; resumeToken: string; connectionId: string; channel: string; view: RoomView; chat: ChatMessage[] };
-export type SnapshotReply = Failure | { ok: true; playerId: string; view: RoomView; chat: ChatMessage[]; channel: string };
-export type CommandReply = Failure | { ok: true; revision: number; view: RoomView; chat: ChatMessage[] };
-export type ChatReply = Failure | { ok: true; view: RoomView; chat: ChatMessage[] };
+export type EnterReply = Failure | { ok: true; playerId: string; resumeToken: string; connectionId: string; channel: string; view: RoomView };
+export type SnapshotReply = Failure | { ok: true; playerId: string; view: RoomView; channel: string };
+export type CommandReply = Failure | { ok: true; revision: number; view: RoomView };
 export type RealtimeConfig = { key: string; url?: string };

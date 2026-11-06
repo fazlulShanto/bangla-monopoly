@@ -14,7 +14,10 @@ test('HTTP validates private channel ownership, errors, safe configuration, and 
     expect(config).toEqual({ key: 'test-public-key', url: 'https://soketi.example:8443' });
     const created: EnterReply = await fetch(`${url}/api/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'friends', name: 'Asha', token: 'rickshaw', requestId: randomUUID(), resumeToken: randomBytes(32).toString('base64url') }) }).then(response => response.json());
     if (!created.ok) throw new Error(created.message);
+    expect(created).not.toHaveProperty('chat');
     const headers = { Authorization: `Bearer ${created.resumeToken}`, 'X-Connection-Id': created.connectionId, 'Content-Type': 'application/x-www-form-urlencoded' };
+    const removedChat = await fetch(`${url}/api/chat`, { method: 'POST', headers, body: new URLSearchParams({ text: 'Hello' }) });
+    expect(removedChat.status).toBe(404);
     const allowed = await fetch(`${url}/api/pusher/auth`, { method: 'POST', headers, body: new URLSearchParams({ socket_id: '123.456', channel_name: created.channel }) });
     expect(allowed.status).toBe(200);
     expect(await allowed.json()).toEqual({ auth: `123.456:${created.channel}` });

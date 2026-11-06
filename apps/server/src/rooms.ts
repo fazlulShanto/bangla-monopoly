@@ -1,9 +1,9 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
-import type { ChatReply, CommandReply, CreateRoom, EnterReply, Failure, JoinRoom, RoomCommand, RoomView, SnapshotReply, TokenId } from '@deshi/game';
+import type { CommandReply, CreateRoom, EnterReply, Failure, JoinRoom, RoomCommand, RoomView, SnapshotReply, TokenId } from '@deshi/game';
 import { STARTING_CASH, TOKENS } from '@deshi/game';
 import { z } from 'zod';
 import { applyAction, applyTradeAction, chooseBotAction, chooseBotTradeAction, createGame, gameView, RuleError, type GameState } from './game';
-import { chatSchema, roomCommandSchema, type PrivateSeat, type RoomDocument } from './schema';
+import { roomCommandSchema, type PrivateSeat, type RoomDocument } from './schema';
 import { StorageConflict, type RoomStore } from './store';
 
 export type Credentials = { resumeToken: string; connectionId: string };
@@ -116,7 +116,7 @@ export class RoomService {
     if (!seat.connectionId) throw new SessionError('SESSION_REPLACED');
     await this.touch(room, seat);
     await this.broadcast(room);
-    return { ok: true, playerId: seat.id, resumeToken, connectionId: seat.connectionId, channel: channel(seat), view: this.view(room, seat.id), chat: room.chat };
+    return { ok: true, playerId: seat.id, resumeToken, connectionId: seat.connectionId, channel: channel(seat), view: this.view(room, seat.id) };
   }
 
   private async recoverEntry(input: CreateRoom | JoinRoom, kind: 'create' | 'join'): Promise<EnterReply | null> {
@@ -136,7 +136,7 @@ export class RoomService {
         const recovered = await this.recoverEntry(input, 'create');
         if (recovered) return recovered;
         const now = Date.now();
-        const room: RoomDocument = { _id: roomCode(), kind: input.kind, revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, chat: [], requests: [], createdAt: now, updatedAt: now, writeId: '' };
+        const room: RoomDocument = { _id: roomCode(), kind: input.kind, revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, requests: [], createdAt: now, updatedAt: now, writeId: '' };
         const host = this.newSeat(room, { ...input, kind: 'human', resumeHash: hashToken(input.resumeToken), ready: true, entryRequestId: input.requestId, entryKind: 'create' });
         room.seats.push(host);
         room.hostId = host.id;
@@ -201,7 +201,7 @@ export class RoomService {
   async snapshot(credentials: Credentials, heartbeat = false): Promise<SnapshotReply> {
     return this.withSeat(credentials, async ({ room, seat }) => {
       if (heartbeat) await this.touch(room, seat);
-      return { ok: true, playerId: seat.id, view: this.view(room, seat.id), chat: room.chat, channel: channel(seat) };
+      return { ok: true, playerId: seat.id, view: this.view(room, seat.id), channel: channel(seat) };
     });
   }
 
@@ -212,7 +212,7 @@ export class RoomService {
   async command(credentials: Credentials, input: z.infer<typeof roomCommandSchema>): Promise<CommandReply> {
     return this.withSeat(credentials, async ({ room: current, seat }) => {
       const previous = current.requests.find(request => request.playerId === seat.id && request.requestId === input.requestId && request.kind === 'command');
-      if (previous) return { ok: true, revision: previous.revision, view: this.view(current, seat.id), chat: current.chat };
+      if (previous) return { ok: true, revision: previous.revision, view: this.view(current, seat.id) };
       if (current.revision !== input.expectedRevision) return { ok: false, code: 'STALE_REVISION', message: 'The room changed. Your board has been refreshed. Try that action again.', view: this.view(current, seat.id) };
       const next = structuredClone(current);
       const actor = next.seats.find(candidate => candidate.id === seat.id);
@@ -227,7 +227,7 @@ export class RoomService {
       }
       await this.broadcast(saved);
       this.schedule(saved);
-      return { ok: true, revision: saved.revision, view: this.view(saved, seat.id), chat: saved.chat };
+      return { ok: true, revision: saved.revision, view: this.view(saved, seat.id) };
     });
   }
 
@@ -273,27 +273,12 @@ export class RoomService {
     }
   }
 
-  async chat(credentials: Credentials, input: z.infer<typeof chatSchema>): Promise<ChatReply> {
-    return this.withSeat(credentials, async ({ room: current, seat }) => {
-      if (current.requests.some(request => request.playerId === seat.id && request.requestId === input.requestId && request.kind === 'chat')) return { ok: true, view: this.view(current, seat.id), chat: current.chat };
-      const next = structuredClone(current);
-      next.chat.push({ id: randomUUID(), playerId: seat.id, name: seat.name, text: input.text, sentAt: Date.now() });
-      next.chat = next.chat.slice(-50);
-      next.requests.push({ playerId: seat.id, requestId: input.requestId, revision: current.revision + 1, kind: 'chat' });
-      next.requests = next.requests.slice(-512);
-      const saved = await this.commit(next, current.revision);
-      await this.broadcast(saved);
-      this.schedule(saved);
-      return { ok: true, view: this.view(saved, seat.id), chat: saved.chat };
-    });
-  }
-
   async disconnect(credentials: Credentials): Promise<SnapshotReply> {
     return this.withSeat(credentials, async ({ room, seat }) => {
       this.leases.delete(seat.id);
       await this.broadcast(room);
       this.schedule(room);
-      return { ok: true, playerId: seat.id, view: this.view(room, seat.id), chat: room.chat, channel: channel(seat) };
+      return { ok: true, playerId: seat.id, view: this.view(room, seat.id), channel: channel(seat) };
     });
   }
 

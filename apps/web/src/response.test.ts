@@ -24,7 +24,7 @@ describe('game HTTP replies', () => {
   });
 
   test('returns a successful reply unchanged', async () => {
-    const reply = { ok: true, playerId: 'player-one', chat: [] };
+    const reply = { ok: true, playerId: 'player-one' };
     expect(await readReply(Response.json(reply))).toEqual(reply);
   });
 });

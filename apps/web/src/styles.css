@@ -58,6 +58,8 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .workspace { max-width: 1342px; padding: 16px 28px 0; margin: auto; }
 .tiny-dot { display: inline-block; width: 5px; height: 5px; background: var(--mint); border-radius: 50%; flex-shrink: 0; }
 .game-layout { display: grid; grid-template-columns: 194px minmax(0, 740px) 282px; gap: 20px; align-items: start; justify-content: center; }
+.table-rail { min-width: 0; }
+.table-utilities { display: none; }
 .panel-label { display: flex; justify-content: space-between; align-items: center; height: 32px; margin-bottom: 12px; }
 .panel-label h2 { font: 600 14px 'Space Grotesk', sans-serif; margin: 0; }
 .seat-count { display: flex; align-items: center; gap: 6px; color: #d6deeb; font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -351,32 +353,10 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .game-tabs { margin-bottom: 18px; }
 .game-tabs > button { font-size: 13px; padding: 9px 3px; min-height: 38px; }
 .tab-count { color: #bce7cb; font-size: 12px; margin-left: 4px; }
-.activity-feed { height: 402px; overflow-y: auto; padding-right: 4px; }
-.activity-entry { position: relative; display: flex; gap: 9px; align-items: flex-start; padding: 0 0 18px; }
-.activity-entry::after { content: ''; position: absolute; left: 3px; width: 1px; top: 12px; bottom: 0; background: #35415a; }
-.activity-entry:last-child::after { display: none; }
-.activity-pin { width: 7px; height: 7px; background: #647794; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-.activity-entry--latest .activity-pin { background: var(--mint); }
-.activity-entry p { margin: 0; font-size: 14px; line-height: 1.5; color: #bbc7da; overflow-wrap: anywhere; }
-.activity-entry--latest p { color: #e1e9e3; }
-.activity-new { font-size: 12px; color: #b6e1c6; margin-left: auto; padding-top: 3px; flex-shrink: 0; }
 .panel-empty { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 260px; text-align: center; }
 .panel-empty > svg { color: #a1b4cf; margin-bottom: 17px; }
 .panel-empty h3 { font: 500 16px 'Space Grotesk', sans-serif; margin: 0 0 9px; letter-spacing: -0.02em; }
 .panel-empty p { margin: 0; color: #b0bed3; font-size: 14px; line-height: 1.6; }
-.chat-panel { height: 402px; display: flex; flex-direction: column; }
-.chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding-right: 3px; }
-.chat-message { margin-bottom: 17px; }
-.chat-message > div { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 6px; }
-.chat-message strong { font-size: 13px; font-weight: 500; color: #bacbe1; }
-.chat-message time { color: #adbbd1; font-size: 12px; }
-.chat-message p { margin: 0; background: #25314a; border-radius: 2px 9px 9px 9px; padding: 10px 11px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; color: #e5eaf2; }
-.chat-message--mine strong { color: #bbdfc8; }
-.chat-message--mine p { background: #243c37; color: #d9eee0; border-radius: 9px 2px 9px 9px; }
-.chat-form { display: flex; align-items: center; gap: 5px; background: #101b2e; border: 1px solid #42516b; border-radius: 8px; margin-top: 10px; padding: 5px; }
-.chat-form:focus-within { border-color: #a1efbd; }
-.chat-form input { background: none; border: 0; outline: none; color: #eef0eb; font-size: 14px; padding: 8px 4px; width: 100%; }
-.chat-form > button { background: #a1efbd; color: #183329; display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 5px; }
 .portfolio-panel { height: 402px; overflow-y: auto; }
 .portfolio-summary { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 10px; border-bottom: 1px solid #34405a; color: #a9c9b8; }
 .portfolio-summary > div > span { display: block; color: #aabbd2; font-size: 12px; margin-bottom: 2px; }
@@ -585,7 +565,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 }
 
 .app--fullscreen { height: 100dvh; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); overflow: hidden; }
-.app--fullscreen .site-header, .app--fullscreen .site-footer, .app--fullscreen .players-panel, .app--fullscreen .room-panel, .app--fullscreen .board-caption { display: none; }
+.app--fullscreen .site-header, .app--fullscreen .site-footer, .app--fullscreen .table-rail, .app--fullscreen .room-panel, .app--fullscreen .board-caption { display: none; }
 .fullscreen-exit { display: inline-flex; align-items: center; align-self: flex-end; justify-content: center; gap: 7px; flex-shrink: 0; min-height: 36px; padding: 8px 10px; border: 1px solid #3a465e; border-radius: 8px; background: #171f32; color: #dbe1eb; font-size: 11px; }
 .fullscreen-exit:hover { background: #253047; color: #f8f5ed; }
 .app--fullscreen .workspace { display: flex; flex-direction: column; flex: 1; gap: 12px; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0; }
@@ -641,6 +621,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .game-layout { grid-template-columns: minmax(0, 1fr) 280px; gap: 22px; }
   .board-shell { grid-column: 1; grid-row: 1; }
   .room-panel { grid-column: 2; grid-row: 1; }
+  .table-rail { grid-column: 1 / -1; grid-row: 2; }
   .players-panel { grid-column: 1 / -1; grid-row: 2; padding-top: 9px; }
   .players-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
   .empty-table { display: none; }
@@ -650,7 +631,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .workspace { padding: 16px 26px 0; max-width: 1060px; }
   .site-footer { padding-left: 26px; padding-right: 26px; max-width: 1060px; }
   .header-inner { max-width: 1060px; padding: 0 26px; }
-  .activity-feed, .chat-panel, .portfolio-panel, .trades-panel { height: 340px; }
+  .portfolio-panel, .trades-panel { height: 340px; }
 }
 @media (max-width: 800px) {
   .site-header { height: 70px; }
@@ -664,6 +645,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .game-layout { grid-template-columns: minmax(0, 1fr); gap: 27px; }
   .board-shell { grid-column: 1; grid-row: 1; }
   .room-panel { grid-column: 1; grid-row: 2; width: 100%; padding: 25px; }
+  .table-rail { grid-column: 1; grid-row: 3; }
   .players-panel { grid-column: 1; grid-row: 3; }
   .players-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
   .lobby-heading h2 { font-size: 27px; }
@@ -697,14 +679,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .match-status > div > strong { font-size: 14px; }
   .match-status > div > span { font-size: 12px; }
   .game-tabs > button { font-size: 13px; padding: 9px 5px; }
-  .activity-feed, .chat-panel, .portfolio-panel, .trades-panel { height: 320px; }
-  .activity-entry p { font-size: 14px; }
-  .activity-new { font-size: 12px; }
-  .chat-message strong { font-size: 13px; }
-  .chat-message time { font-size: 12px; }
-  .chat-message p { font-size: 14px; }
-  .chat-form input { font-size: 14px; }
-  .chat-form > button { width: 36px; height: 36px; }
+  .portfolio-panel, .trades-panel { height: 320px; }
   .portfolio-property-main strong { font-size: 14px; }
   .portfolio-property-main > div > span { font-size: 12px; }
   .build-property-button { font-size: 12px; }
@@ -817,6 +792,116 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .center-activity-heading { margin-bottom: 7px; }
   .center-activity-list li:nth-child(n+3) { display: none; }
 }
+
+.workspace--welcome { max-width: none; }
+.welcome-stage { position: relative; isolation: isolate; display: grid; place-items: center; overflow: clip; }
+.welcome-board-preview { position: absolute; z-index: -1; width: min(78vw, 880px); right: -12%; top: 50%; transform: translateY(-50%) rotate(-8deg); opacity: 0.18; pointer-events: none; }
+.welcome-board-preview .board-caption { display: none; }
+.welcome-overlay { width: min(100%, 980px); display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); overflow: hidden; border: 1px solid #35425a; border-radius: 16px; background: #171f32; box-shadow: 0 28px 80px #080d19a8; }
+.welcome-intro { display: flex; flex-direction: column; align-items: flex-start; padding: clamp(28px, 3.5vw, 48px); background: #1d2d39; }
+.welcome-brand, .table-brand { display: flex; align-items: center; gap: 12px; }
+.welcome-copy { margin: auto 0; padding: 40px 0; }
+.welcome-copy h1 { margin: 0; color: #f5f3eb; font: 600 clamp(34px, 3.7vw, 52px)/1.08 'Space Grotesk', sans-serif; letter-spacing: -0.035em; }
+.welcome-copy p { max-width: 290px; margin: 20px 0 0; color: #c1cfce; font-size: 15px; line-height: 1.6; }
+.welcome-facts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 25px; color: #b6d6c5; font-size: 12px; }
+.welcome-rules { display: flex; align-items: center; gap: 10px; padding: 10px 0; color: #d4ebe0; background: none; border: 0; font-size: 13px; font-weight: 600; }
+.welcome-rules:hover { color: var(--mint); }
+.welcome-setup { padding: clamp(28px, 3.5vw, 44px); }
+.welcome-setup .lobby-heading h2 { font-size: 24px; }
+.welcome-setup .lobby-heading > p { margin: 8px 0 20px; font-size: 13px; }
+.welcome-setup .lobby-tabs > button { min-height: 38px; font-size: 13px; }
+.welcome-setup .room-form { margin-top: 20px; }
+.room-form-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.welcome-setup .field-label { font-size: 12px; }
+.welcome-setup .input-with-icon input { font-size: 14px; }
+.welcome-setup .starting-cash-field { margin-top: 0; }
+.welcome-setup .starting-cash-field > p { font-size: 11px; }
+.welcome-setup .token-label { margin-top: 18px; }
+.welcome-setup .token-label > span:last-child { font-size: 11px; }
+.welcome-setup .token-option { min-height: 43px; }
+.welcome-setup .create-button { margin-top: 18px; font-size: 13px; }
+.welcome-setup .form-note { font-size: 11px; }
+.welcome-setup .practice-section { margin-top: 18px; padding-top: 16px; }
+.welcome-setup .practice-section > span { font-size: 12px; margin-bottom: 8px; }
+.welcome-setup .practice-button { min-height: 42px; font-size: 13px; }
+.welcome-setup .practice-section p { font-size: 11px; }
+.welcome-setup .lobby-reassurance { margin-top: 18px; font-size: 11px; }
+
+@media (min-width: 901px) and (min-height: 600px) {
+  .app--home:not(.app--fullscreen), .app--in-room:not(.app--fullscreen) { display: flex; flex-direction: column; height: 100dvh; min-height: 0; }
+  .app--home:not(.app--fullscreen) .site-header, .app--in-room:not(.app--fullscreen) .site-header,
+  .app--home:not(.app--fullscreen) .site-footer, .app--in-room:not(.app--fullscreen) .site-footer { display: none; }
+  .app--home:not(.app--fullscreen) .workspace, .app--in-room:not(.app--fullscreen) .workspace { display: flex; flex: 1; flex-direction: column; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 16px 24px; }
+  .app--home:not(.app--fullscreen) .error-banner, .app--in-room:not(.app--fullscreen) .error-banner { flex-shrink: 0; margin: 0 0 12px; }
+  .app--home:not(.app--fullscreen) .welcome-stage { flex: 1; min-height: 0; }
+  .app--home:not(.app--fullscreen) .welcome-overlay { max-height: 100%; overflow-y: auto; }
+  .app--in-room:not(.app--fullscreen) .game-layout { flex: 1; min-height: 0; width: 100%; max-width: 1700px; margin: 0 auto; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) minmax(250px, 300px); grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: clamp(12px, 1.6vw, 24px); container-type: size; }
+  .app--in-room:not(.app--fullscreen) .table-rail { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-height: 0; }
+  .app--in-room:not(.app--fullscreen) .players-panel { min-height: 0; overflow-y: auto; padding: 0; }
+  .app--in-room:not(.app--fullscreen) .players-list { display: flex; }
+  .app--in-room:not(.app--fullscreen) .rail-note { display: none; }
+  .app--in-room:not(.app--fullscreen) .table-utilities { display: flex; flex-direction: column; gap: 18px; margin-top: auto; padding: 18px 0 2px; }
+  .table-brand .brand-mark { width: 31px; height: 31px; border-radius: 8px; }
+  .table-brand .brand-name { font-size: 13px; }
+  .table-brand .brand-name > span { font-size: 6px; }
+  .table-utilities .header-actions { margin: 0; gap: 3px; }
+  .table-utilities .how-to-play { padding-left: 0; font-size: 12px; }
+  .table-utilities .header-divider { margin: 0 2px; }
+  .app--in-room:not(.app--fullscreen) .board-shell { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; width: min(100%, calc(100cqh - 30px)); }
+  .app--in-room:not(.app--fullscreen) .board-caption { padding-top: 12px; }
+  .app--in-room:not(.app--fullscreen) .room-panel { grid-column: 3; grid-row: 1; min-height: 0; max-height: 100%; }
+  .app--in-room:not(.app--fullscreen) .room-panel--lobby { align-self: start; overflow-y: auto; padding: 18px; }
+  .room-panel--lobby .lobby-heading h2 br, .room-panel--lobby .lobby-heading > p, .room-panel--lobby .room-bottom-note { display: none; }
+  .room-panel--lobby .room-status-label { margin-bottom: 8px; font-size: 11px; }
+  .room-panel--lobby .lobby-heading h2 { margin-bottom: 14px; font-size: 22px; }
+  .room-panel--lobby .room-code { padding: 9px 12px; }
+  .room-panel--lobby .room-code > span { font-size: 10px; }
+  .room-panel--lobby .room-code .icon-button { top: 18px; }
+  .room-panel--lobby .copy-invite { margin-top: 7px; font-size: 12px; }
+  .room-panel--lobby .lobby-cash-settings, .room-panel--lobby .room-starting-cash { margin-top: 12px; padding-top: 12px; }
+  .room-panel--lobby .starting-cash-field > p { font-size: 11px; }
+  .room-panel--lobby .save-starting-cash { min-height: 36px; margin-top: 8px; font-size: 12px; }
+  .room-panel--lobby .ready-summary { margin: 14px 0 12px; font-size: 12px; }
+  .room-panel--lobby .ready-summary > span:last-child { font-size: 11px; }
+  .room-panel--lobby .lobby-room-actions { gap: 6px; }
+  .room-panel--lobby .lobby-room-actions .button { min-height: 36px; padding: 8px 12px; font-size: 12px; }
+  .room-panel--lobby .start-game { margin-top: 2px; }
+  .room-panel--lobby .start-reason, .room-panel--lobby .leave-button { font-size: 11px; }
+  .room-panel--lobby .leave-button { margin-top: 8px; }
+  .app--in-room:not(.app--fullscreen) .game-panel { display: flex; flex-direction: column; height: 100%; }
+  .app--in-room:not(.app--fullscreen) .portfolio-panel, .app--in-room:not(.app--fullscreen) .trades-panel { flex: 1; min-height: 0; height: auto; }
+}
+
+@media (max-width: 900px) {
+  .welcome-overlay { max-width: 540px; grid-template-columns: minmax(0, 1fr); }
+  .welcome-intro { padding: 28px; }
+  .welcome-brand { display: none; }
+  .welcome-copy { padding: 0; }
+  .welcome-copy h1 { font-size: clamp(30px, 7vw, 40px); }
+  .welcome-copy p { margin-top: 12px; }
+  .welcome-facts { margin-top: 16px; }
+  .welcome-rules { margin-top: 14px; }
+  .welcome-setup { padding: 26px 28px; }
+  .welcome-board-preview { top: 160px; width: 100%; right: -30%; }
+}
+
+@media (max-width: 480px) {
+  .welcome-intro, .welcome-setup { padding: 24px 20px; }
+  .room-form-fields { grid-template-columns: minmax(0, 1fr); }
+  .welcome-setup .room-form-fields { gap: 14px; }
+}
+
+@media (min-width: 901px) and (max-height: 719px) {
+  .welcome-intro, .welcome-setup { padding: 24px 30px; }
+  .welcome-copy { padding: 24px 0; }
+  .welcome-setup .lobby-heading > p { margin-bottom: 12px; }
+  .welcome-setup .room-form { margin-top: 14px; }
+  .welcome-setup .token-label { margin-top: 12px; }
+  .welcome-setup .create-button { margin-top: 12px; }
+  .welcome-setup .practice-section { margin-top: 12px; padding-top: 12px; }
+  .welcome-setup .lobby-reassurance { margin-top: 10px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dice-stage .die-hop, .dice-stage .die-tumble, .dice-stage .die-shadow { animation: none !important; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

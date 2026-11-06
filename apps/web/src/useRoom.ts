@@ -3,11 +3,11 @@ import Pusher from 'pusher-js';
 import { GameConnectionError, readReply } from './response';
 import { GAME_CONFIG, TOKENS } from '@deshi/game';
 import type {
-  ChatMessage, ChatReply, CommandReply, CreateRoom, EnterReply, Failure,
+  CommandReply, CreateRoom, EnterReply, Failure,
   JoinRoom, RealtimeConfig, RoomCommand, RoomView, SnapshotReply, TokenId,
 } from '@deshi/game';
 
-type Session = { playerId: string; view: RoomView; chat: ChatMessage[] };
+type Session = { playerId: string; view: RoomView };
 type Connection = 'connecting' | 'online' | 'restoring' | 'offline';
 type RoomError = { kind: 'action' | 'transport'; message: string };
 type CreateInput = Omit<CreateRoom, 'requestId' | 'resumeToken'>;
@@ -18,7 +18,6 @@ type Controller = {
   create: (input: CreateInput) => Promise<boolean>;
   join: (input: JoinInput) => Promise<boolean>;
   command: (input: RoomCommand) => Promise<boolean>;
-  sendChat: (text: string) => Promise<boolean>;
   reconnect: () => void;
 };
 const RESUME_KEY = 'deshi.resume';
@@ -167,9 +166,9 @@ export function useRoom() {
       }
     }
 
-    function applySnapshot(view: RoomView, chat: ChatMessage[], playerId = current?.playerId) {
+    function applySnapshot(view: RoomView, playerId = current?.playerId) {
       if (!active || !playerId || (current && (current.view.code !== view.code || current.view.revision > view.revision))) return;
-      current = { playerId, view, chat };
+      current = { playerId, view };
       setSession(current);
       inviteAddress(view.code);
     }
@@ -218,7 +217,7 @@ export function useRoom() {
             const reply = await request<SnapshotReply>(renewLease ? '/api/heartbeat' : '/api/session', renewLease ? {} : undefined, auth);
             if (!active || auth !== seat) continue;
             if (!reply.ok) { failure(reply); continue; }
-            applySnapshot(reply.view, reply.chat, reply.playerId);
+            applySnapshot(reply.view, reply.playerId);
             if (subscribed) {
               restoring = false;
               setError((previous) => previous?.kind === 'transport' ? null : previous);
@@ -275,7 +274,7 @@ export function useRoom() {
       clearSavedEntry();
       seat = { resumeToken: reply.resumeToken, connectionId: reply.connectionId, channel: reply.channel };
       current = null;
-      applySnapshot(reply.view, reply.chat, reply.playerId);
+      applySnapshot(reply.view, reply.playerId);
       setError(null);
       restoring = true;
       subscribeSeat(seat);
@@ -404,17 +403,8 @@ export function useRoom() {
         }, auth);
         if (!active || auth !== seat) return false;
         if (!reply.ok) { failure(reply); return false; }
-        applySnapshot(reply.view, reply.chat);
+        applySnapshot(reply.view);
         if (input.type === 'leave') clearSeat('left');
-        return true;
-      }),
-      sendChat: (text) => run('chat', async () => {
-        if (!seat) return false;
-        const auth = seat;
-        const reply = await request<ChatReply>('/api/chat', { requestId: crypto.randomUUID(), text }, auth);
-        if (!active || auth !== seat) return false;
-        if (!reply.ok) { failure(reply); return false; }
-        applySnapshot(reply.view, reply.chat);
         return true;
       }),
       reconnect: () => {
@@ -462,7 +452,6 @@ export function useRoom() {
     create: (input: CreateInput) => controller.current?.create(input) ?? Promise.resolve(false),
     join: (input: JoinInput) => controller.current?.join(input) ?? Promise.resolve(false),
     command: (input: RoomCommand) => controller.current?.command(input) ?? Promise.resolve(false),
-    sendChat: (text: string) => controller.current?.sendChat(text) ?? Promise.resolve(false),
     reconnect: () => controller.current?.reconnect(),
     clearError: () => setError(null),
   };
