@@ -65,6 +65,12 @@ docker compose --profile https up -d --build
 
 Caddy requests the certificate and forwards HTTP to Bun and WebSocket traffic to Soketi. `/api/health` checks MongoDB and Soketi readiness. Keep one Bun app replica. Room writes run in one server process, and MongoDB stores saved room state.
 
+## Turn timeout
+
+Both games give the current human player 30 seconds to make a move. A valid move restarts the countdown for their next decision. The server stores and enforces the deadline; refreshing, reconnecting, and other players' moves do not extend it. Change `GAME_CONFIG.turnTimeoutMs` in `packages/game/src/config.ts` to adjust the default.
+
+When time runs out, UNO draws one card and passes, or passes if the player already drew. Deshi Tycoon completes the inactive player's turn by rolling, declining purchases, and ending the turn, including extra rolls from doubles. The server applies normal rent, taxes, and jail rules. It does not buy properties or build for the inactive player. Automatic moves pause when all human players disconnect; a returning player resumes the saved game with its original deadline.
+
 ## Deshi Tycoon rules
 
 Each player starts with the amount chosen by the host: ৳500–৳10,000 in whole taka, with a default of ৳1,500. The same setting applies to practice games and bots. Starting cash cannot change after play begins. Passing Go pays ৳200. Roll two dice, buy an unowned property or pass, and pay rent on another player's property. Collect a full color group to build evenly. Four houses can become a hotel. Airport rent increases with the number of airports owned. Utility rent depends on the dice.
@@ -83,7 +89,7 @@ Doubles grant another roll. Three consecutive doubles send a player to jail. A j
 
 Use the Trades tab to offer another player cash, properties, or a combination of both. The recipient can accept, decline, or negotiate a counteroffer. You can cancel an offer you sent. Trades are available between turns. Cash and properties move only when the recipient accepts, and offers close if their assets become unavailable. Streets in a color group with houses or a hotel cannot be traded. Bots compare the cash and property prices on both sides when they respond.
 
-This version uses house rules. An unpaid mandatory bill causes immediate bankruptcy. The last solvent player wins. Auctions, mortgages, and building sales are not included.
+This version uses house rules. An unpaid mandatory bill causes immediate bankruptcy. The player's properties become unowned, with houses and hotels preserved. Any player who lands on one can buy it from the bank and keep its upgrades. The purchase price is the base property price plus the building cost multiplied by its level: one through four for houses, or five for a hotel. If the debt is owed to another player, that player receives the remaining cash. Leaving a game also releases properties with their upgrades preserved. The last solvent player wins. Auctions, mortgages, and building sales are not included.
 
 ## UNO
 

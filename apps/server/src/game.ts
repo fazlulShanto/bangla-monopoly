@@ -1,4 +1,4 @@
-import { BAIL, BOARD, GAME_CONFIG, GO_POSITION, GO_SALARY, STARTING_CASH, type Die, type GameAction, type GameView, type PlayerView, type Tile, type TradeAction, type TradeAssets, type TradeOffer, type Turn } from '@deshi/game';
+import { BAIL, BOARD, GAME_CONFIG, GO_POSITION, GO_SALARY, purchasePrice, STARTING_CASH, type Die, type GameAction, type GameView, type PlayerView, type Tile, type TradeAction, type TradeAssets, type TradeOffer, type Turn } from '@deshi/game';
 
 type GameData = Pick<GameView, 'players' | 'deeds' | 'lastRoll' | 'log' | 'tradeLog' | 'turnNumber' | 'trades'> & {
   nextTradeId: number;
@@ -246,7 +246,7 @@ export function legalActions(game: GameState, playerId: string): GameAction[] {
         break;
       case 'purchase': {
         const tile = BOARD[game.turn.tile];
-        if (tile && 'price' in tile && player.cash >= tile.price) actions.push({ type: 'buy' });
+        if (tile && 'price' in tile && player.cash >= purchasePrice(tile, game.deeds[tile.id]?.level ?? 0)) actions.push({ type: 'buy' });
         actions.push({ type: 'decline' });
         break;
       }
@@ -284,10 +284,9 @@ function bankrupt(game: PlayingGame, player: PlayerView, creditor?: PlayerView):
   for (const tile of BOARD) {
     const deed = game.deeds[tile.id];
     if (deed?.ownerId !== player.id) continue;
-    if (creditor) deed.ownerId = creditor.id;
-    else delete game.deeds[tile.id];
+    deed.ownerId = null;
   }
-  log(game, `${nameOf(game, player)} is bankrupt.${creditor ? ` Their assets go to ${nameOf(game, creditor)}.` : ' Their properties return to the bank.'}`);
+  log(game, `${nameOf(game, player)} is bankrupt. Their properties return to the bank with buildings intact.`);
   const survivors = game.players.filter(candidate => candidate.status === 'active');
   const winner = survivors[0];
   if (survivors.length === 1 && winner) {
@@ -330,7 +329,7 @@ function move(game: PlayingGame, player: PlayerView, spaces: number): void {
 export function rentFor(game: GameState, tileId: number, diceTotal: number): number {
   const tile = BOARD[tileId];
   const deed = game.deeds[tileId];
-  if (!tile || !deed) return 0;
+  if (!tile || !deed || deed.ownerId === null) return 0;
   if (tile.kind === 'street') return tile.rent[deed.level] * (deed.level === 0 && ownsGroup(game, deed.ownerId, tile) ? 2 : 1);
   if (tile.kind === 'airport') {
     const count = BOARD.filter(other => other.kind === 'airport' && game.deeds[other.id]?.ownerId === deed.ownerId).length;
@@ -380,7 +379,7 @@ function land(game: PlayingGame, player: PlayerView, diceTotal: number): void {
   switch (tile.kind) {
     case 'street': case 'airport': case 'utility': {
       const deed = game.deeds[tile.id];
-      if (!deed) game.turn = { playerId: player.id, phase: 'purchase', tile: tile.id };
+      if (!deed || deed.ownerId === null) game.turn = { playerId: player.id, phase: 'purchase', tile: tile.id };
       else if (deed.ownerId !== player.id) {
         const owner = playerIn(game, deed.ownerId);
         pay(game, player, rentFor(game, tile.id, diceTotal), `rent to ${nameOf(game, owner)}`, owner);
@@ -439,10 +438,12 @@ export function applyAction(state: GameState, playerId: string, action: GameActi
       if (game.turn.phase !== 'purchase') throw new RuleError('There is no property to buy.');
       const tile = BOARD[game.turn.tile];
       if (!tile || !('price' in tile)) throw new RuleError('This property is not for sale.');
-      player.cash -= tile.price;
-      game.deeds[tile.id] = { ownerId: player.id, level: 0 };
+      const level = game.deeds[tile.id]?.level ?? 0;
+      const price = purchasePrice(tile, level);
+      player.cash -= price;
+      game.deeds[tile.id] = { ownerId: player.id, level };
       game.turn = { playerId, phase: 'end' };
-      log(game, `${nameOf(game, player)} bought ${tile.name} for ৳${tile.price}.`);
+      log(game, `${nameOf(game, player)} bought ${tile.name} for ৳${price}.`);
       break;
     }
     case 'decline':

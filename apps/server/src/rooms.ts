@@ -1,6 +1,6 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { CommandReply, CreateRoom, EnterReply, Failure, JoinRoom, RoomCommand, RoomView, SnapshotReply, TokenId } from '@deshi/game';
-import { STARTING_CASH, TOKENS } from '@deshi/game';
+import { GAME_CONFIG, STARTING_CASH, TOKENS } from '@deshi/game';
 import { z } from 'zod';
 import { applyAction, applyTradeAction, chooseBotAction, chooseBotTradeAction, createGame, gameView, RuleError, type GameState } from './game';
 import { roomCommandSchema, type PrivateSeat, type RoomDocument } from './schema';
@@ -30,11 +30,11 @@ export class RoomService {
   private readonly queues = new Map<string, Promise<void>>();
   private readonly leases = new Map<string, Lease>();
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly botFailures = new Map<string, number>();
+  private readonly automationFailures = new Map<string, number>();
   private readonly leaseTimer: ReturnType<typeof setInterval>;
   private closing = false;
 
-  constructor(readonly store: RoomStore, private readonly publisher: RoomPublisher, private readonly botDelay = 900, private readonly leaseDuration = 35_000) {
+  constructor(readonly store: RoomStore, private readonly publisher: RoomPublisher, private readonly botDelay = 900, private readonly leaseDuration = 35_000, private readonly turnTimeoutMs = GAME_CONFIG.turnTimeoutMs) {
     this.leaseTimer = setInterval(() => { void this.expireLeases(); }, Math.min(1000, leaseDuration));
     this.leaseTimer.unref();
   }
@@ -62,6 +62,12 @@ export class RoomService {
     const saved = await this.store.get(code);
     if (!saved || saved.seats.length === 0) throw new RuleError('That room does not exist. Check the invite code.');
     this.rooms.set(code, saved);
+    if (this.refreshTurnTimer(saved)) {
+      const initialized = await this.commit(saved, saved.revision);
+      await this.broadcast(initialized);
+      this.schedule(initialized);
+      return initialized;
+    }
     return saved;
   }
 
@@ -138,7 +144,7 @@ export class RoomService {
         const recovered = await this.recoverEntry(input, 'create');
         if (recovered) return recovered;
         const now = Date.now();
-        const room: RoomDocument = { _id: roomCode(), kind: input.kind, gameType: input.gameType ?? 'tycoon', revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, unoGame: null, requests: [], createdAt: now, updatedAt: now, writeId: '' };
+        const room: RoomDocument = { _id: roomCode(), kind: input.kind, gameType: input.gameType ?? 'tycoon', revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, unoGame: null, turnTimer: null, requests: [], createdAt: now, updatedAt: now, writeId: '' };
         const host = this.newSeat(room, { ...input, kind: 'human', resumeHash: hashToken(input.resumeToken), ready: true, entryRequestId: input.requestId, entryKind: 'create' });
         room.seats.push(host);
         room.hostId = host.id;
@@ -213,7 +219,10 @@ export class RoomService {
   }
 
   async command(credentials: Credentials, input: z.infer<typeof roomCommandSchema>): Promise<CommandReply> {
-    return this.withSeat(credentials, async ({ room: current, seat }) => {
+    return this.withSeat(credentials, async ({ room, seat }) => {
+      let current: RoomDocument;
+      try { current = await this.expireTurn(room); }
+      catch (error) { this.retryAutomation(room._id, error); throw error; }
       const previous = current.requests.find(request => request.playerId === seat.id && request.requestId === input.requestId && request.kind === 'command');
       if (previous) return { ok: true, revision: previous.revision, view: this.view(current, seat.id) };
       if (current.revision !== input.expectedRevision) return { ok: false, code: 'STALE_REVISION', message: 'The room changed. Your game has been refreshed. Try that action again.', view: this.view(current, seat.id) };
@@ -221,6 +230,7 @@ export class RoomService {
       const actor = next.seats.find(candidate => candidate.id === seat.id);
       if (!actor) throw new SessionError('INVALID_SESSION');
       this.applyCommand(next, actor, input.command);
+      this.refreshTurnTimer(next, current.turnTimer?.playerId === actor.id);
       next.requests.push({ playerId: actor.id, requestId: input.requestId, revision: current.revision + 1, kind: 'command' });
       next.requests = next.requests.slice(-512);
       const saved = await this.commit(next, current.revision);
@@ -310,6 +320,7 @@ export class RoomService {
   }
 
   private async commit(next: RoomDocument, previousRevision: number | null): Promise<RoomDocument> {
+    this.refreshTurnTimer(next);
     next.revision = (previousRevision ?? 0) + 1;
     next.updatedAt = Date.now();
     next.writeId = randomUUID();
@@ -329,7 +340,8 @@ export class RoomService {
     return { code: room._id, kind: room.kind, gameType: room.gameType, revision: room.revision, hostId: room.hostId, startingCash: room.startingCash,
       seats: room.seats.map(seat => ({ id: seat.id, name: seat.name, color: seat.color, token: seat.token, kind: seat.kind, ready: seat.ready, connected: this.active(seat) })),
       game: room.game ? gameView(room.game, playerId) : null,
-      unoGame: room.unoGame ? unoGameView(room.unoGame, playerId) : null };
+      unoGame: room.unoGame ? unoGameView(room.unoGame, playerId) : null,
+      turnTimer: room.turnTimer, serverTime: Date.now() };
   }
 
   private async publish(channels: string[], message: RoomEvent): Promise<void> {
@@ -342,44 +354,87 @@ export class RoomService {
     await this.publish(room.seats.filter(seat => seat.kind === 'human' && !seat.left && seat.connectionId).map(channel), { event: 'room:updated', data: { revision: room.revision } });
   }
 
+  private turnPlayerId(room: RoomDocument): string | undefined {
+    if (room.unoGame?.status === 'playing') return room.unoGame.turnPlayerId;
+    if (room.game?.status === 'playing') return room.game.turn.playerId;
+  }
+
+  private refreshTurnTimer(room: RoomDocument, reset = false): boolean {
+    const playerId = this.turnPlayerId(room);
+    const actor = room.seats.find(seat => seat.id === playerId && !seat.left);
+    if (!actor || actor.kind === 'bot') {
+      const changed = room.turnTimer !== null;
+      room.turnTimer = null;
+      return changed;
+    }
+    if (!reset && room.turnTimer?.playerId === actor.id) return false;
+    room.turnTimer = { playerId: actor.id, expiresAt: Date.now() + this.turnTimeoutMs, durationMs: this.turnTimeoutMs };
+    return true;
+  }
+
+  private async expireTurn(current: RoomDocument): Promise<RoomDocument> {
+    const timer = current.turnTimer;
+    if (!timer || timer.expiresAt > Date.now() || timer.playerId !== this.turnPlayerId(current)) return current;
+    const next = structuredClone(current);
+    const actor = next.seats.find(seat => seat.id === timer.playerId && seat.kind === 'human' && !seat.left);
+    if (!actor) return current;
+    const game = next.unoGame ?? next.game;
+    if (!game || game.status !== 'playing') return current;
+    game.log.push({ id: (game.log.at(-1)?.id ?? 0) + 1, text: `${actor.name} ran out of time. Their turn was completed automatically.` });
+    game.log = game.log.slice(-100);
+    if (next.unoGame?.status === 'playing') {
+      if (next.unoGame.drawnCardId === null) next.unoGame = applyUnoAction(next.unoGame, actor.id, { type: 'draw' });
+      if (next.unoGame.status === 'playing' && next.unoGame.turnPlayerId === actor.id) next.unoGame = applyUnoAction(next.unoGame, actor.id, { type: 'pass' });
+    } else {
+      while (next.game?.status === 'playing' && next.game.turn.playerId === actor.id) {
+        const type = next.game.turn.phase === 'roll' ? 'roll' : next.game.turn.phase === 'purchase' ? 'decline' : 'endTurn';
+        next.game = applyAction(next.game, actor.id, { type });
+      }
+    }
+    const saved = await this.commit(next, current.revision);
+    this.automationFailures.delete(current._id);
+    await this.broadcast(saved);
+    this.schedule(saved);
+    return saved;
+  }
+
   private schedule(room: RoomDocument): void {
     const previous = this.timers.get(room._id);
     if (previous) clearTimeout(previous);
     this.timers.delete(room._id);
     if (this.closing || !room.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
-    if (room.unoGame?.status === 'playing') {
-      const actor = room.seats.find(seat => room.unoGame?.status === 'playing' && seat.id === room.unoGame.turnPlayerId);
-      if (actor?.kind === 'bot') this.setBotTimer(room._id, this.botDelay);
-      return;
-    }
-    if (room.game?.status !== 'playing') return;
-    const actor = room.seats.find(seat => room.game?.status === 'playing' && seat.id === room.game.turn.playerId);
-    const hasBotTrade = room.game.trades.some(trade => room.seats.some(seat => seat.id === trade.toPlayerId && seat.kind === 'bot'));
-    if (actor?.kind !== 'bot' && !hasBotTrade) return;
-    this.setBotTimer(room._id, this.botDelay);
+    const actor = room.seats.find(seat => seat.id === this.turnPlayerId(room));
+    const hasBotTrade = room.game?.status === 'playing' && room.game.trades.some(trade => room.seats.some(seat => seat.id === trade.toPlayerId && seat.kind === 'bot'));
+    const botWait = actor?.kind === 'bot' || hasBotTrade ? this.botDelay : Infinity;
+    const turnWait = room.turnTimer ? Math.max(0, room.turnTimer.expiresAt - Date.now()) : Infinity;
+    const delay = Math.min(botWait, turnWait);
+    if (Number.isFinite(delay)) this.setAutomationTimer(room._id, delay);
   }
 
-  private setBotTimer(code: string, delay: number, reload = false): void {
+  private setAutomationTimer(code: string, delay: number, reload = false): void {
     if (this.closing) return;
-    const timer = setTimeout(() => { this.timers.delete(code); void this.botTurn(code, reload); }, delay);
+    const previous = this.timers.get(code);
+    if (previous) clearTimeout(previous);
+    const timer = setTimeout(() => { this.timers.delete(code); void this.automatedTurn(code, reload); }, delay);
     this.timers.set(code, timer);
     timer.unref();
   }
 
-  private async botTurn(code: string, reload: boolean): Promise<void> {
+  private async automatedTurn(code: string, reload: boolean): Promise<void> {
     try {
       await this.queued(code, async () => {
         const current = await this.room(code, reload);
         if (this.closing || !current.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
+        if (await this.expireTurn(current) !== current) return;
         if (current.unoGame?.status === 'playing') {
           const actor = current.seats.find(seat => current.unoGame?.status === 'playing' && seat.id === current.unoGame.turnPlayerId && seat.kind === 'bot');
-          if (!actor) return;
+          if (!actor) { this.schedule(current); return; }
           const action = chooseUnoBotAction(current.unoGame, actor.id);
           if (!action) return;
           const next = structuredClone(current);
           next.unoGame = applyUnoAction(current.unoGame, actor.id, action);
           const saved = await this.commit(next, current.revision);
-          this.botFailures.delete(code);
+          this.automationFailures.delete(code);
           await this.broadcast(saved);
           this.schedule(saved);
           return;
@@ -396,21 +451,23 @@ export class RoomService {
           const action = chooseBotAction(game, actor.id);
           if (action) game = applyAction(game, actor.id, action);
         }
-        if (game === current.game) return;
+        if (game === current.game) { this.schedule(current); return; }
         const next = structuredClone(current);
         next.game = game;
         const saved = await this.commit(next, current.revision);
-        this.botFailures.delete(code);
+        this.automationFailures.delete(code);
         await this.broadcast(saved);
         this.schedule(saved);
       });
-    } catch (error) {
-      console.error(JSON.stringify({ event: 'bot_transition_failed', code, error: error instanceof Error ? error.name : 'UnknownError' }));
-      this.rooms.delete(code);
-      const failures = (this.botFailures.get(code) ?? 0) + 1;
-      this.botFailures.set(code, failures);
-      if ([...this.leases.values()].some(lease => lease.code === code && lease.expires > Date.now())) this.setBotTimer(code, Math.min(4000, 250 * 2 ** Math.min(failures - 1, 4)), true);
-    }
+    } catch (error) { this.retryAutomation(code, error); }
+  }
+
+  private retryAutomation(code: string, error: unknown): void {
+    console.error(JSON.stringify({ event: 'room_automation_failed', code, error: error instanceof Error ? error.name : 'UnknownError' }));
+    this.rooms.delete(code);
+    const failures = (this.automationFailures.get(code) ?? 0) + 1;
+    this.automationFailures.set(code, failures);
+    if ([...this.leases.values()].some(lease => lease.code === code && lease.expires > Date.now())) this.setAutomationTimer(code, Math.min(4000, 250 * 2 ** Math.min(failures - 1, 4)), true);
   }
 
   private async expireLeases(): Promise<void> {

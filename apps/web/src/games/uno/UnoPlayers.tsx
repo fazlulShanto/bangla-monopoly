@@ -1,23 +1,38 @@
-import { Bot, Crown, Layers, LockKeyhole } from 'lucide-react';
+import { Bot, Layers } from 'lucide-react';
 import type { RoomView, UnoGameView } from '@deshi/game';
 import { TokenAvatar } from '../../ui';
+import { UnoCardBack } from './UnoCards';
+
+const seatPositions: Record<number, string[]> = {
+  1: ['north'],
+  2: ['northwest', 'northeast'],
+  3: ['west', 'north', 'east'],
+  4: ['west', 'northwest', 'northeast', 'east'],
+  5: ['west', 'northwest', 'north', 'northeast', 'east'],
+};
 
 export default function UnoPlayers({ room, game, playerId }: {
   room: RoomView; game: UnoGameView; playerId: string;
 }) {
-  const turnPlayerId = game.status === 'playing' ? game.turnPlayerId : null;
-  return <aside className="uno-players">
-    <div className="uno-section-title"><h2>Players</h2><span>{game.players.filter((player) => player.status === 'active').length} / 6</span></div>
-    <ul className="uno-player-list">{room.seats.map((seat) => {
+  const myIndex = room.seats.findIndex((seat) => seat.id === playerId);
+  const opponents = [...room.seats.slice(myIndex + 1), ...room.seats.slice(0, Math.max(0, myIndex))];
+  const positions = seatPositions[opponents.length] ?? [];
+  return <ul className="uno-table-seats" aria-label="Opponents, in clockwise order">
+    {opponents.map((seat, index) => {
       const player = game.players.find((item) => item.id === seat.id);
-      const current = turnPlayerId === seat.id;
-      return <li className={`uno-player${current ? ' is-current' : ''}${player?.status === 'out' ? ' is-out' : ''}`} key={seat.id}>
-        <span className="uno-player-avatar"><TokenAvatar token={seat.token} />{current && <i />}</span>
-        <div className="uno-player-info"><strong title={seat.name}>{seat.name}{seat.id === playerId && <small>you</small>}</strong><span>{player?.status === 'out' ? 'Left the round' : !seat.connected && seat.kind === 'human' ? 'Reconnecting…' : current ? 'Playing now' : seat.kind === 'bot' ? <><Bot size={12} />Bot</> : seat.id === room.hostId ? <><Crown size={12} />Host</> : 'At the table'}</span></div>
-        <span className={`uno-player-cards${player?.uno ? ' is-uno' : ''}`} aria-label={`${player?.cardCount ?? 0} cards`}>{player?.uno ? 'UNO' : <><Layers size={13} />{player?.cardCount ?? 0}</>}</span>
+      const current = game.status === 'playing' && game.turnPlayerId === seat.id;
+      const count = player?.cardCount ?? 0;
+      const out = player?.status === 'out';
+      return <li key={seat.id} data-seat={positions[index]} data-player-id={seat.id} className={`uno-table-player${current ? ' is-current' : ''}${out ? ' is-out' : ''}`} aria-current={current ? 'true' : undefined}>
+        <div className="uno-opponent-hand" aria-hidden="true">
+          {Array.from({ length: Math.min(count, 7) }, (_, cardIndex) => <span className="uno-hidden-card" key={cardIndex}><UnoCardBack /></span>)}
+        </div>
+        <div className="uno-opponent-label">
+          <span className="uno-player-avatar"><TokenAvatar token={seat.token} /></span>
+          <div className="uno-player-info"><strong title={seat.name}>{seat.name}</strong><span>{out ? 'Left the round' : !seat.connected && seat.kind === 'human' ? 'Reconnecting…' : current ? 'Playing now' : seat.kind === 'bot' ? <><Bot size={12} />Bot</> : 'At the table'}</span></div>
+          <span className={`uno-player-cards${player?.uno ? ' is-uno' : ''}`} aria-label={`${count} cards`}>{player?.uno ? 'UNO!' : <><Layers size={13} />{count}</>}</span>
+        </div>
       </li>;
-    })}</ul>
-    <p className="uno-private-note"><LockKeyhole size={13} />Only you can see your hand.</p>
-    <div className="uno-sidebar-activity"><h2>Recent moves</h2><ol>{game.log.slice(-4).reverse().map((entry, index) => <li key={entry.id} className={index === 0 ? 'is-latest' : ''}><i /><p>{entry.text}</p></li>)}</ol></div>
-  </aside>;
+    })}
+  </ul>;
 }

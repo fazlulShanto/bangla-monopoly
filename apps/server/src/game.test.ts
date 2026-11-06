@@ -239,27 +239,83 @@ describe('Bangladesh rules', () => {
     expect(player(movedBack).position).toBe(19);
     expect(player(movedBack).cash).toBe(STARTING_CASH);
   });
-  test('unpayable rent transfers remaining cash and deeds, then advances play', () => {
+  test.each([0, 2, 5] as const)('unpayable rent frees properties at level %i for purchase with their buildings', level => {
     const state = game(3);
     player(state).cash = 10;
     player(state).position = 22;
     state.deeds[25] = { ownerId: 'b', level: 0 };
-    state.deeds[3] = { ownerId: 'a', level: 2 };
+    state.deeds[3] = { ownerId: 'a', level };
+    state.deeds[5] = { ownerId: 'a', level: 0 };
+    state.deeds[12] = { ownerId: 'a', level: 0 };
     const after = roll(state, 1, 2);
     expect(player(after).cash).toBe(0);
     expect(player(after).status).toBe('bankrupt');
     expect(player(after, 'b').cash).toBe(1510);
-    expect(after.deeds[3]).toEqual({ ownerId: 'b', level: 2 });
+    expect(after.deeds).toEqual({
+      3: { ownerId: null, level },
+      5: { ownerId: null, level: 0 },
+      12: { ownerId: null, level: 0 },
+      25: { ownerId: 'b', level: 0 },
+    });
+    expect(rentFor(after, 3, 4)).toBe(0);
+    expect(rentFor(after, 5, 4)).toBe(0);
+    expect(rentFor(after, 12, 4)).toBe(0);
+    expect(after.log.at(-1)?.text).toBe('Asha is bankrupt. Their properties return to the bank with buildings intact.');
     expect(after.status === 'playing' && after.turn.playerId).toBe('b');
+
+    player(after, 'b').position = 39;
+    const landed = roll(after, 1, 3);
+    expect(landed.status === 'playing' && landed.turn).toEqual({ playerId: 'b', phase: 'purchase', tile: 3 });
+    expect(player(landed, 'b').cash).toBe(1510);
+    const bought = applyAction(landed, 'b', { type: 'buy' });
+    const price = GAME_CONFIG.properties.gazipur.price + level * GAME_CONFIG.properties.gazipur.buildCost;
+    expect(bought.deeds[3]).toEqual({ ownerId: 'b', level });
+    expect(player(bought, 'b').cash).toBe(1510 - price);
+    expect(bought.log.at(-1)?.text).toBe(`Bashir bought Gazipur for ৳${price}.`);
+    expect(rentFor(bought, 3, 4)).toBe(GAME_CONFIG.properties.gazipur.rent[level]);
+  });
+  test('buying an unowned upgraded property requires its full price and declining preserves its buildings', () => {
+    const state = game(3);
+    const price = GAME_CONFIG.properties.gazipur.price + 2 * GAME_CONFIG.properties.gazipur.buildCost;
+    state.deeds[3] = { ownerId: null, level: 2 };
+    player(state).position = 39;
+    player(state).cash = price - 1;
+    const landed = roll(state, 1, 3);
+    expect(legalActions(landed, 'a')).not.toContainEqual({ type: 'buy' });
+    expect(chooseBotAction(landed, 'a')).toEqual({ type: 'decline' });
+    expect(() => applyAction(landed, 'a', { type: 'buy' })).toThrow(RuleError);
+    const declined = applyAction(landed, 'a', { type: 'decline' });
+    expect(declined.deeds[3]).toEqual({ ownerId: null, level: 2 });
+    expect(player(declined).cash).toBe(price - 1);
+
+    player(landed).cash = price;
+    expect(chooseBotAction(landed, 'a')).toEqual({ type: 'buy' });
+    const bought = applyAction(landed, 'a', { type: 'buy' });
+    expect(player(bought).cash).toBe(0);
+    expect(player(bought).status).toBe('active');
+    expect(bought.deeds[3]).toEqual({ ownerId: 'a', level: 2 });
+  });
+  test('birthday debt frees the debtor’s buildings without changing the current player', () => {
+    const state = game(3);
+    state.treasureDeck = [5, ...state.treasureDeck.filter(card => card !== 5)];
+    player(state).position = 38;
+    player(state, 'b').cash = 5;
+    state.deeds[3] = { ownerId: 'b', level: 5 };
+    const after = roll(state, 1, 3);
+    expect(player(after, 'b').status).toBe('bankrupt');
+    expect(player(after, 'b').cash).toBe(0);
+    expect(player(after).cash).toBe(STARTING_CASH + 15);
+    expect(after.deeds[3]).toEqual({ ownerId: null, level: 5 });
+    expect(after.status === 'playing' && after.turn).toEqual({ playerId: 'a', phase: 'end' });
   });
   test('bank debt returns deeds and the last solvent player wins', () => {
     const state = game();
     player(state).cash = 10;
     player(state).position = 1;
-    state.deeds[3] = { ownerId: 'a', level: 0 };
+    state.deeds[3] = { ownerId: 'a', level: 5 };
     const after = roll(state, 1, 2);
     expect(after.status === 'finished' && after.winnerId).toBe('b');
-    expect(after.deeds[3]).toBeUndefined();
+    expect(after.deeds[3]).toEqual({ ownerId: null, level: 5 });
     expect(gameView(after, 'b').legalActions).toEqual([]);
   });
   test('an out-of-turn player can resign and cannot act afterward', () => {

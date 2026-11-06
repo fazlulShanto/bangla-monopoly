@@ -3,7 +3,7 @@ import {
   ArrowRight, ArrowUpRight, Building2, Check, CircleAlert, CircleHelp, Dices, Expand,
   House, Link, Maximize2, Minimize2, ShieldCheck, Sparkles, Volume2, VolumeX, Wifi, X,
 } from 'lucide-react';
-import { BAIL, BOARD, GAME_CONFIG, GO_SALARY, STARTING_CASH, type GameAction, type RoomView, type Tile } from '@deshi/game';
+import { BAIL, BOARD, GAME_CONFIG, GO_SALARY, STARTING_CASH, purchasePrice, type GameAction, type RoomView, type Tile } from '@deshi/game';
 import Board from './Board';
 import GamePanel from './GamePanel';
 import Lobby from './Lobby';
@@ -16,11 +16,12 @@ import { isTycoonPage, isUnoPage } from './navigation';
 import UnoGame from './games/uno/UnoGame';
 import { BangladeshFlag, Modal, money, Spinner, TileIcon } from './ui';
 import { useRoom } from './useRoom';
+import { useGameSounds } from './useGameSounds';
 
 function Rules({ startingCash, onClose }: { startingCash: number | null; onClose: () => void }) {
   return <Modal title="A little luck. A few house rules." onClose={onClose} className="rules-modal"><p className="modal-intro">Gather 2–6 players. Travel Bangladesh. Build the last empire standing.</p>
     <div className="rules-flow"><div><Dices size={23} /><h3>Roll & explore</h3><p>{startingCash === null ? <>The host chooses starting cash. The default is {money(STARTING_CASH)}.</> : <>Everyone starts with {money(startingCash)}.</>} Roll two dice and follow the board. Collect {money(GO_SALARY)} each time you pass Go.</p></div><div><Building2 size={23} /><h3>Claim your corner</h3><p>Buy an available property when you land on it, or pass. Pay rent when you visit someone else’s property.</p></div><div><House size={23} /><h3>Dream a little bigger</h3><p>Own a complete color group to build houses evenly. Four houses can become a hotel. A full group doubles rent on its undeveloped streets.</p></div></div>
-    <div className="rules-detail"><h3>The twists along the way</h3><p>Doubles give you another roll. Three doubles in one turn send you to jail. To leave jail, pay {money(BAIL)} or roll doubles. After three failed attempts, you pay bail and move.</p><p>Chance and Treasure can change your plans. Airports earn more rent when you own more airports. Utilities charge four times the dice total, or ten times if you own both.</p><h3>Make a deal</h3><p>Open <strong>Trades</strong> to offer cash and properties to another player, even outside your turn. They can accept, decline, or make a counteroffer. A trade happens only when accepted. You can cancel your pending offers.</p><p>Streets cannot be traded while any street in their color group has houses or a hotel. Bots accept offers when the cash and property purchase prices they receive cover what they give.</p><h3>Our house rules</h3><p>There are no auctions, mortgages, or building sales. If you cannot pay a required bill, you become bankrupt immediately and your properties return to the bank. The last solvent player wins.</p><p>Kuakata Sea Beach is a free vacation stop. All taka is game money.</p></div>
+    <div className="rules-detail"><h3>The twists along the way</h3><p>Doubles give you another roll. Three doubles in one turn send you to jail. To leave jail, pay {money(BAIL)} or roll doubles. After three failed attempts, you pay bail and move.</p><p>Chance and Treasure can change your plans. Airports earn more rent when you own more airports. Utilities charge four times the dice total, or ten times if you own both.</p><h3>Make a deal</h3><p>Open <strong>Trades</strong> to offer cash and properties to another player, even outside your turn. They can accept, decline, or make a counteroffer. A trade happens only when accepted. You can cancel your pending offers.</p><p>Streets cannot be traded while any street in their color group has houses or a hotel. Bots accept offers when the cash and property purchase prices they receive cover what they give.</p><h3>Our house rules</h3><p>There are no auctions, mortgages, or building sales. If you cannot pay a required bill, you become bankrupt immediately. Your properties become unowned and keep their houses or hotel. If you owe another player, they receive your remaining cash.</p><p>Anyone who lands on an unowned property can buy it from the bank. The price includes the base property price plus one building cost per house, or five building costs for a hotel. The buyer keeps those upgrades. The last solvent player wins.</p><p>Kuakata Sea Beach is a free vacation stop. All taka is game money.</p></div>
     <div className="rules-controls"><ShieldCheck size={19} /><p>The host starts when every human is ready. Click any space to inspect it. Find your properties under <strong>My empire</strong> and use available Build buttons on your turn.</p></div><button className="button button-primary" onClick={onClose}>Got it. Let’s play. <ArrowRight size={17} /></button>
   </Modal>;
 }
@@ -37,10 +38,10 @@ function TileDetails({ tile, room, playerId, disabled, pending, onAction, onClos
   const artwork = locationArtwork(tile);
   const development = !deed || deed.level === 0 ? 'Unimproved' : deed.level === 5 ? 'Hotel' : `${deed.level} ${deed.level === 1 ? 'house' : 'houses'}`;
   return <Modal title={tile.name} onClose={onClose} className="tile-modal"><div className="deed-layout"><div className="deed-overview">
-    {artwork ? <div className="deed-landscape"><LocationArt tile={tile} />{tile.kind === 'street' && <><PropertyBuildings level={deed?.level ?? 0} className="deed-buildings" /><span className="deed-landscape-strip" style={{ backgroundColor: tile.color }} /></>}</div>
+    {artwork ? <div className="deed-landscape"><LocationArt tile={tile} level={deed?.level ?? 0} />{tile.kind === 'street' && <>{deed?.level !== 5 && <PropertyBuildings level={deed?.level ?? 0} className="deed-buildings" />}<span className="deed-landscape-strip" style={{ backgroundColor: tile.color }} /></>}</div>
       : <div className="deed-banner" style={tile.kind === 'street' ? { backgroundColor: tile.color, color: '#081321', textShadow: 'none' } : undefined}><TileIcon tile={tile} size={35} /><span>{tile.kind === 'street' ? 'A PIECE OF YOUR NEXT EMPIRE' : tile.kind === 'airport' ? 'CONNECT THE WHOLE COUNTRY' : tile.kind === 'utility' ? 'KEEP BANGLADESH MOVING' : 'THE JOURNEY HAS A FEW TWISTS'}</span></div>}
-    {tile.kind === 'street' && <p className="deed-development">{development}</p>}
-    {'price' in tile && <div className="deed-price-row"><span>Property price</span><strong>{money(tile.price)}</strong></div>}
+    {tile.kind === 'street' && <p className="deed-development">{development}{!owner && deed && deed.level > 0 ? ' included in purchase' : ''}</p>}
+    {'price' in tile && <div className="deed-price-row"><span>{owner ? 'Property price' : 'Purchase price'}</span><strong>{money(owner ? tile.price : purchasePrice(tile, deed?.level ?? 0))}</strong></div>}
     {'price' in tile && <div className="deed-owner">{owner ? <><span className="owner-marker" style={{ backgroundColor: owner.color }} /><span>Owned by <strong>{owner.id === playerId ? 'you' : owner.name}</strong></span></> : <><Building2 size={16} /><span>Available from the bank</span></>}</div>}
     </div><div className="deed-details">
     {tile.kind === 'street' && <><div className="rent-heading"><h3>Rent at a glance</h3><span>Build for {money(tile.buildCost)}</span></div><div className="rent-table">{tile.rent.map((rent, level) => <div className={deed && deed.level === level ? 'current-level' : ''} key={level}><span>{level === 0 ? 'Unimproved' : level === 5 ? 'Hotel' : `${level} ${level === 1 ? 'house' : 'houses'}`}{deed && deed.level === level && <Check size={11} />}</span><strong>{money(rent * (level === 0 && ownedGroupCount === group.length ? 2 : 1))}</strong></div>)}</div><div className="color-group"><h3>The complete color group</h3><div>{group.map((item) => <span key={item.id}><i style={{ backgroundColor: tile.color }} />{item.name}{room?.game?.deeds[item.id]?.ownerId === owner?.id && owner && <Check size={11} />}</span>)}</div><p>Own the full set to double unimproved rent and build evenly.</p></div></>}
@@ -71,10 +72,10 @@ function TycoonGame() {
   const [fullscreen, setFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
-  const audio = useRef<AudioContext | null>(null);
   const copyTimer = useRef<number | undefined>(undefined);
   const game = session?.view.game;
   const disabled = !!pending || connection !== 'online';
+  const unlockSound = useGameSounds({ session, connection, enabled: sound });
 
   useEffect(() => {
     document.title = 'Deshi Tycoon — Big dreams. Deshi streets.';
@@ -83,34 +84,18 @@ function TycoonGame() {
     return () => {
       document.removeEventListener('fullscreenchange', handler);
       window.clearTimeout(copyTimer.current);
-      void audio.current?.close();
     };
   }, []);
 
-  function rollSound() {
-    if (!sound) return;
-    try {
-      audio.current ??= new AudioContext();
-      const context = audio.current;
-      void context.resume();
-      for (let index = 0; index < 5; index++) {
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const start = context.currentTime + index * 0.07;
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(170 + index * 37, start);
-        oscillator.frequency.exponentialRampToValueAtTime(65, start + 0.05);
-        gain.gain.setValueAtTime(0.035, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.06);
-        oscillator.connect(gain); gain.connect(context.destination);
-        oscillator.start(start); oscillator.stop(start + 0.07);
-      }
-    } catch { /* Sound is optional when the browser has no audio device. */ }
+  function play(action: GameAction) {
+    void client.command({ type: 'play', action });
   }
 
-  function play(action: GameAction) {
-    if (action.type === 'roll') rollSound();
-    void client.command({ type: 'play', action });
+  function toggleSound() {
+    const enabled = !sound;
+    if (enabled) unlockSound();
+    setSound(enabled);
+    writePreference('deshi.sound', enabled ? 'on' : 'off');
   }
 
   async function copyInvite() {
@@ -137,7 +122,7 @@ function TycoonGame() {
     } catch { setCopyError('Your browser cannot enter full screen here. You can expand the browser window instead.'); }
   }
 
-  const gameTools = <nav className="header-actions" aria-label="Game tools"><button className="how-to-play" onClick={() => setRulesOpen(true)}><CircleHelp size={16} /><span>How to play</span></button><span className="header-divider" /><button className="icon-button" aria-label={sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={sound} title={sound ? 'Sound on' : 'Sound off'} onClick={() => { setSound(!sound); writePreference('deshi.sound', !sound ? 'on' : 'off'); }}>{sound ? <Volume2 size={19} /> : <VolumeX size={19} />}</button><button className="icon-button fullscreen-button" aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} title={fullscreen ? 'Exit full screen' : 'Full screen'} onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button></nav>;
+  const gameTools = <nav className="header-actions" aria-label="Game tools"><button className="how-to-play" onClick={() => setRulesOpen(true)}><CircleHelp size={16} /><span>How to play</span></button><span className="header-divider" /><button className="icon-button" aria-label={sound ? 'Turn sound off' : 'Turn sound on'} aria-pressed={sound} title={sound ? 'Sound on' : 'Sound off'} onClick={toggleSound}>{sound ? <Volume2 size={19} /> : <VolumeX size={19} />}</button><button className="icon-button fullscreen-button" aria-label={fullscreen ? 'Exit full screen' : 'Enter full screen'} title={fullscreen ? 'Exit full screen' : 'Full screen'} onClick={() => void toggleFullscreen()}>{fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button></nav>;
 
   return <div className={`app${session ? ' app--in-room' : ' app--home'}${fullscreen ? ' app--fullscreen' : ''}`}><header className="site-header"><div className="header-inner"><a className="brand" href={window.location.pathname} onClick={(event) => { if (session) event.preventDefault(); }} aria-label="Deshi Tycoon home"><span className="brand-mark"><Dices size={24} strokeWidth={2.3} /></span><span className="brand-name">DESHI TYCOON<span>BIG DREAMS. DESHI STREETS.</span></span></a><span className="edition"><BangladeshFlag />Bangladesh edition</span>{gameTools}</div></header>
     {fullscreen && <button className="fullscreen-exit" onClick={() => void toggleFullscreen()}><Minimize2 size={16} aria-hidden="true" /><span>Exit full screen</span></button>}
@@ -145,6 +130,6 @@ function TycoonGame() {
       {(error || copyError) && <div className="error-banner" role="alert"><CircleAlert size={17} /><p>{error ?? copyError}</p>{connection === 'offline' && <button onClick={client.reconnect}>Reconnect <Wifi size={13} /></button>}<button className="icon-button" aria-label="Dismiss message" onClick={() => { client.clearError(); setCopyError(null); }}><X size={16} /></button></div>}
       {session ? <div className="game-layout"><div className="table-rail"><Players room={session.view} playerId={session.playerId} disabled={disabled} onRemoveBot={(id) => void client.command({ type: 'removeBot', playerId: id })} /><div className="table-utilities"><div className="table-brand"><span className="brand-mark"><Dices size={18} strokeWidth={2.3} /></span><span className="brand-name">DESHI TYCOON<span>BIG DREAMS. DESHI STREETS.</span></span></div>{gameTools}</div></div><Board room={session.view} playerId={session.playerId} pending={pending} disabled={disabled} onAction={play} onSelect={setSelectedTile} onLeave={leave} />{game ? <GamePanel client={client} copied={copied} onCopy={() => void copyInvite()} onSelect={setSelectedTile} onLeave={leave} /> : <Lobby client={client} copied={copied} onCopy={() => void copyInvite()} onLeave={leave} onRules={() => setRulesOpen(true)} />}</div> : <div className="welcome-stage"><div className="welcome-board-preview" aria-hidden="true" inert><Board room={null} playerId={null} pending={pending} disabled onAction={play} onSelect={setSelectedTile} onLeave={leave} /></div><Lobby client={client} copied={copied} onCopy={() => void copyInvite()} onLeave={leave} onRules={() => setRulesOpen(true)} /></div>}
     </main><footer className="site-footer"><span>Made for game nights. <strong>Made for Bangladesh.</strong></span><div><button onClick={() => setRulesOpen(true)}>The house rules <ArrowUpRight size={11} /></button><span>Play for the bragging rights.</span></div></footer>
-    {rulesOpen && <Rules startingCash={session?.view.startingCash ?? null} onClose={() => setRulesOpen(false)} />}{selectedTile && <TileDetails tile={selectedTile} room={session?.view ?? null} playerId={session?.playerId ?? null} disabled={disabled} pending={pending} onAction={play} onClose={() => setSelectedTile(null)} />}{leaveOpen && <Modal title="Leave this game?" onClose={() => setLeaveOpen(false)} className="leave-modal"><p className="modal-intro">Your properties return to the bank and you cannot rejoin this seat.</p><div className="confirm-buttons"><button className="button button-secondary" onClick={() => setLeaveOpen(false)}>Keep playing</button><button className="button button-danger" disabled={disabled} onClick={() => { setLeaveOpen(false); void client.command({ type: 'leave' }); }}>Leave game <ArrowUpRight size={16} /></button></div></Modal>}
+    {rulesOpen && <Rules startingCash={session?.view.startingCash ?? null} onClose={() => setRulesOpen(false)} />}{selectedTile && <TileDetails tile={selectedTile} room={session?.view ?? null} playerId={session?.playerId ?? null} disabled={disabled} pending={pending} onAction={play} onClose={() => setSelectedTile(null)} />}{leaveOpen && <Modal title="Leave this game?" onClose={() => setLeaveOpen(false)} className="leave-modal"><p className="modal-intro">Your properties become unowned and keep their upgrades. Other players can buy them from the bank. You cannot rejoin this seat.</p><div className="confirm-buttons"><button className="button button-secondary" onClick={() => setLeaveOpen(false)}>Keep playing</button><button className="button button-danger" disabled={disabled} onClick={() => { setLeaveOpen(false); void client.command({ type: 'leave' }); }}>Leave game <ArrowUpRight size={16} /></button></div></Modal>}
   </div>;
 }

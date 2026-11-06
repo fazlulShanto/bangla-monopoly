@@ -1,4 +1,5 @@
 import type { Tile } from '@deshi/game';
+import type { PropertyLevel } from './PropertyBuildings';
 
 const LOCATION_SLUGS: Readonly<Partial<Record<number, string>>> = {
   0: 'kuakata-sea-beach',
@@ -35,8 +36,12 @@ export function locationArtwork(tile: Tile): string | undefined {
   return slug === undefined ? undefined : `${import.meta.env.BASE_URL}locations/${slug}.jpg`;
 }
 
-export default function LocationArt({ tile, className }: { tile: Tile; className?: string }) {
+export default function LocationArt({ tile, level = 0, className = '' }: { tile: Tile; level?: PropertyLevel; className?: string }) {
   const source = locationArtwork(tile);
   if (source === undefined) return null;
-  return <img src={source} className={className} width={512} height={512} alt="" aria-hidden="true" draggable={false} />;
+  const hotel = tile.kind === 'street' && level === 5;
+  return <span className={`location-art${hotel ? ' location-art--hotel' : ''} ${className}`} aria-hidden="true">
+    <img src={source} className="location-art-city" width={512} height={512} alt="" draggable={false} />
+    {hotel && <img src={`${import.meta.env.BASE_URL}buildings/hotel-estate.png`} className="location-art-hotel" width={1254} height={1254} alt="" draggable={false} />}
+  </span>;
 }

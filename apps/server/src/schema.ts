@@ -73,7 +73,7 @@ function isLegacyTradeEvent(text: string, names: string[]): boolean {
 
 const gameDataSchema = z.object({
   players: z.array(playerSchema).min(2).max(6),
-  deeds: z.record(z.string(), z.object({ ownerId: z.string(), level }).optional()),
+  deeds: z.record(z.string(), z.object({ ownerId: z.string().nullable(), level }).optional()),
   lastRoll: z.object({ playerId: z.string(), dice: z.tuple([die, die]) }).nullable(),
   log: z.array(activityEntrySchema), tradeLog: z.array(activityEntrySchema).max(100).optional(), turnNumber: z.number().int().positive(),
   trades: z.array(z.object({ id: tradeId, fromPlayerId: z.string(), toPlayerId: z.string(), give: tradeAssetsSchema, receive: tradeAssetsSchema })).max(15).default([]),
@@ -100,6 +100,7 @@ export const roomSchema = z.object({
   })).max(6),
   game: gameSchema.nullable(),
   unoGame: unoGameSchema.nullable().default(null),
+  turnTimer: z.object({ playerId: z.string().uuid(), expiresAt: z.number().int().nonnegative(), durationMs: z.number().int().positive() }).nullable().default(null),
   // Keep legacy room data intact when an existing room is saved.
   chat: z.unknown().optional(),
   requests: z.array(z.object({ playerId: z.string(), requestId: z.string(), revision: z.number().int(), kind: z.enum(['command', 'chat']) })),

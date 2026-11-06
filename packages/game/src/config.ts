@@ -6,6 +6,7 @@ export type StreetValues = {
 
 // Rent order: no buildings, one house, two houses, three houses, four houses, hotel.
 export const GAME_CONFIG = {
+  turnTimeoutMs: 30_000,
   startingCash: { default: 1500, min: 500, max: 10_000 },
   goSalary: 200,
   bail: 50,
@@ -38,6 +39,7 @@ export const GAME_CONFIG = {
     sitakunda:   { price: 280, buildCost: 200, rent: [24, 120, 360, 850, 1025, 1200] },
   },
 } satisfies {
+  turnTimeoutMs: number;
   startingCash: { default: number; min: number; max: number };
   goSalary: number;
   bail: number;

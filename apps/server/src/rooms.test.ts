@@ -386,6 +386,7 @@ describe('durable HTTP room service', () => {
       const saved = await store.get(entry.view.code);
       if (!saved?.game || saved.game.status !== 'playing') throw new Error('Missing fixture game');
       saved.game.turn = { playerId: bot.id, phase: 'roll' };
+      saved.turnTimer = null;
       saved.game.trades = [{ id: 1, fromPlayerId: entry.playerId, toPlayerId: bot.id, give: { cash: 1, tiles: [] }, receive: { cash: 0, tiles: [] } }];
       saved.game.nextTradeId = 2;
       await store.save(saved, saved.revision);
@@ -397,6 +398,14 @@ describe('durable HTTP room service', () => {
       expect(progressed?.game?.lastRoll?.playerId).toBe(bot.id);
       expect(progressed?.game?.log.some(line => line.text.includes('accepted trade #1'))).toBe(true);
     } finally { await service.close(); }
+  });
+
+  test('saved games preserve unowned buildings and existing property owners', () => {
+    const game = createGame({ players: [{ id: 'a', name: 'Asha' }, { id: 'b', name: 'Bashir' }], seed: 1 });
+    game.deeds[1] = { ownerId: null, level: 2 };
+    game.deeds[3] = { ownerId: null, level: 5 };
+    game.deeds[5] = { ownerId: 'b', level: 0 };
+    expect(gameSchema.parse(JSON.parse(JSON.stringify(game))).deeds).toEqual(game.deeds);
   });
 
   test('legacy saved games default trading state and HTTP input rejects unsafe cash and extra fields', () => {

@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T11:39:50.272967Z",
+  "title": "Design System: Deshi Tycoon",
+  "extensions": {
+    "colorMeta": {
+      "uno-lobby-bg": {
+        "role": "neutral",
+        "displayName": "Uno Lobby Bg",
+        "tonalRamp": [
+          "#0a0b10",
+          "#232429",
+          "#414248",
+          "#5f6066",
+          "#81838a",
+          "#a3a4ab",
+          "#c8cad1",
+          "#eceef6"
+        ]
+      },
+      "uno-lobby-surface": {
+        "role": "neutral",
+        "displayName": "Uno Lobby Surface",
+        "tonalRamp": [
+          "#0a0a13",
+          "#22232d",
+          "#40424c",
+          "#5e606b",
+          "#81828e",
+          "#a2a4b0",
+          "#c8cad6",
+          "#ecedfb"
+        ]
+      },
+      "uno-lobby-accent": {
+        "role": "primary",
+        "displayName": "Uno Lobby Accent",
+        "tonalRamp": [
+          "#11003a",
+          "#270e5a",
+          "#44327f",
+          "#6151a1",
+          "#8375c8",
+          "#a496ed",
+          "#c9bcff",
+          "#ede0ff"
+        ]
+      },
+      "uno-text": {
+        "role": "neutral",
+        "displayName": "Uno Text",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#242327",
+          "#424246",
+          "#606064",
+          "#838287",
+          "#a5a4a8",
+          "#cbcace",
+          "#efeef3"
+        ]
+      },
+      "uno-table-bg": {
+        "role": "neutral",
+        "displayName": "Uno Table Bg",
+        "tonalRamp": [
+          "#000b24",
+          "#042641",
+          "#244563",
+          "#426483",
+          "#6487a8",
+          "#85a9cb",
+          "#aacff3",
+          "#cdf3ff"
+        ]
+      },
+      "uno-table-center": {
+        "role": "neutral",
+        "displayName": "Uno Table Center",
+        "tonalRamp": [
+          "#000a2d",
+          "#00274c",
+          "#00486e",
+          "#1c6790",
+          "#458bb6",
+          "#67aed9",
+          "#8dd4ff",
+          "#b0f9ff"
+        ]
+      },
+      "uno-table-mid": {
+        "role": "neutral",
+        "displayName": "Uno Table Mid",
+        "tonalRamp": [
+          "#000a29",
+          "#002647",
+          "#12466a",
+          "#34658b",
+          "#5789b0",
+          "#78abd3",
+          "#9dd1fb",
+          "#c0f6ff"
+        ]
+      },
+      "uno-table-edge": {
+        "role": "neutral",
+        "displayName": "Uno Table Edge",
+        "tonalRamp": [
+          "#000b21",
+          "#0c253e",
+          "#2b445f",
+          "#48637f",
+          "#6a86a4",
+          "#8ba8c7",
+          "#b0ceee",
+          "#d3f2ff"
+        ]
+      },
+      "uno-table-accent": {
+        "role": "neutral",
+        "displayName": "Uno Table Accent",
+        "tonalRamp": [
+          "#00101c",
+          "#002b38",
+          "#074b58",
+          "#2f6a78",
+          "#538d9c",
+          "#75afbf",
+          "#9ad6e6",
+          "#befaff"
+        ]
+      },
+      "uno-table-action": {
+        "role": "primary",
+        "displayName": "Uno Table Action",
+        "tonalRamp": [
+          "#001019",
+          "#002a35",
+          "#174a55",
+          "#386974",
+          "#5b8c98",
+          "#7caeba",
+          "#a1d5e1",
+          "#c4f9ff"
+        ]
+      },
+      "uno-table-action-ink": {
+        "role": "neutral",
+        "displayName": "Uno Table Action Ink",
+        "tonalRamp": [
+          "#000c23",
+          "#002740",
+          "#214661",
+          "#3f6582",
+          "#6188a6",
+          "#82aac9",
+          "#a7d0f1",
+          "#caf4ff"
+        ]
+      },
+      "uno-table-muted": {
+        "role": "neutral",
+        "displayName": "Uno Table Muted",
+        "tonalRamp": [
+          "#000d1b",
+          "#0b2736",
+          "#2a4657",
+          "#486576",
+          "#6a889a",
+          "#8baabd",
+          "#b0d0e4",
+          "#d3f4ff"
+        ]
+      },
+      "uno-playable": {
+        "role": "neutral",
+        "displayName": "Uno Playable",
+        "tonalRamp": [
+          "#001307",
+          "#002e1f",
+          "#134d3d",
+          "#366d5b",
+          "#59907e",
+          "#7ab29f",
+          "#a0d9c4",
+          "#c3fde8"
+        ]
+      },
+      "uno-card-red": {
+        "role": "secondary",
+        "displayName": "Uno Card Red",
+        "tonalRamp": [
+          "#450000",
+          "#6d0000",
+          "#990000",
+          "#c10000",
+          "#ed292d",
+          "#ff5750",
+          "#ff8276",
+          "#ffa899"
+        ]
+      },
+      "uno-card-yellow": {
+        "role": "secondary",
+        "displayName": "Uno Card Yellow",
+        "tonalRamp": [
+          "#230000",
+          "#411600",
+          "#633800",
+          "#835800",
+          "#a87c00",
+          "#cb9e00",
+          "#f3c511",
+          "#ffea50"
+        ]
+      },
+      "uno-card-green": {
+        "role": "secondary",
+        "displayName": "Uno Card Green",
+        "tonalRamp": [
+          "#001700",
+          "#003500",
+          "#005800",
+          "#007a00",
+          "#15a000",
+          "#47c307",
+          "#72ec4a",
+          "#97ff73"
+        ]
+      },
+      "uno-card-blue": {
+        "role": "secondary",
+        "displayName": "Uno Card Blue",
+        "tonalRamp": [
+          "#00063a",
+          "#00275a",
+          "#004a7e",
+          "#006aa0",
+          "#008fc7",
+          "#2fb2ec",
+          "#60d9ff",
+          "#87feff"
+        ]
+      },
+      "uno-card-dark": {
+        "role": "neutral",
+        "displayName": "Uno Card Dark",
+        "tonalRamp": [
+          "#050c13",
+          "#1c252e",
+          "#3a444d",
+          "#57626c",
+          "#79858f",
+          "#9aa6b1",
+          "#c0ccd8",
+          "#e4f0fc"
+        ]
+      },
+      "uno-card-outline": {
+        "role": "neutral",
+        "displayName": "Uno Card Outline",
+        "tonalRamp": [
+          "#010d16",
+          "#162631",
+          "#344551",
+          "#516370",
+          "#738694",
+          "#94a8b6",
+          "#bacedd",
+          "#ddf2ff"
+        ]
+      },
+      "uno-card-paper": {
+        "role": "neutral",
+        "displayName": "Uno Card Paper",
+        "tonalRamp": [
+          "#0c0b06",
+          "#25241e",
+          "#43433c",
+          "#626159",
+          "#84837c",
+          "#a6a59d",
+          "#cccbc2",
+          "#f0efe6"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "uno-turn": {
+        "displayName": "UNO turn message",
+        "purpose": "Active table turn status; smaller in compact layouts."
+      },
+      "uno-card-value": {
+        "displayName": "UNO card value",
+        "purpose": "Card-width-based value on face artwork."
+      }
+    },
+    "shadows": [
+      {
+        "name": "uno-card",
+        "value": "0 5px 9px #00132140",
+        "purpose": "Lifts physical card artwork above the table."
+      },
+      {
+        "name": "uno-recent-moves",
+        "value": "0 12px 32px #00122170",
+        "purpose": "Separates the expanded recent-moves list from the table."
+      }
+    ],
+    "motion": [
+      {
+        "name": "uno-card-ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Hover and focus card lift."
+      },
+      {
+        "name": "uno-card-lift",
+        "value": "180ms",
+        "purpose": "Hover and focus lift; removed for reduced motion."
+      },
+      {
+        "name": "uno-card-flight",
+        "value": "560ms",
+        "purpose": "Confirmed card travels from its player to the discard; skipped for reduced motion and initial or restored snapshots."
+      },
+      {
+        "name": "uno-card-flight-ease",
+        "value": "cubic-bezier(.22, .68, .15, 1)",
+        "purpose": "Card travel decelerates into the discard pile."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "uno-table-narrow",
+        "value": "1050px"
+      },
+      {
+        "name": "uno-table-mobile",
+        "value": "760px"
+      },
+      {
+        "name": "uno-table-small-phone",
+        "value": "400px"
+      },
+      {
+        "name": "uno-table-short-desktop",
+        "value": "(min-width: 761px) and (max-height: 820px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "UNO table primary action",
+      "kind": "button",
+      "refersTo": "uno-table-primary",
+      "description": "Pale cyan primary action used only during active play.",
+      "html": "<button class=\"ds-table-primary\">Play again</button>",
+      "css": ".ds-table-primary { min-height:44px; padding:12px 18px; border:0; border-radius:9px; background:#b6eaf7; color:#0b324c; font:600 13px/1.25 \"DM Sans\",sans-serif; cursor:pointer; } .ds-table-primary:hover { background:#d8f6ff; } .ds-table-primary:focus-visible { outline:2px solid #c8f1ff; outline-offset:4px; }"
+    },
+    {
+      "name": "UNO lobby primary action",
+      "kind": "button",
+      "refersTo": "uno-lobby-primary",
+      "description": "Existing lavender action for creating, joining, and starting a room.",
+      "html": "<button class=\"ds-lobby-primary\">Create a room</button>",
+      "css": ".ds-lobby-primary { min-height:44px; padding:12px 18px; border:0; border-radius:9px; background:#b4a7ff; color:#211936; font:600 13px/1.25 \"DM Sans\",sans-serif; cursor:pointer; } .ds-lobby-primary:hover { background:#c9bfff; } .ds-lobby-primary:focus-visible { outline:2px solid #b4a7ff; outline-offset:4px; }"
+    },
+    {
+      "name": "UNO name field",
+      "kind": "input",
+      "description": "Existing charcoal lobby field with a lavender caret and focus ring.",
+      "html": "<label class=\"ds-name-label\" for=\"ds-uno-name\">Your name</label><input class=\"ds-name-field\" id=\"ds-uno-name\" placeholder=\"What should we call you?\" />",
+      "css": ".ds-name-label { display:block; margin-bottom:8px; color:#d5d1e2; font:500 12px \"DM Sans\",sans-serif; } .ds-name-field { height:46px; padding:0 12px; background:#111219; border:1px solid #3b394a; border-radius:7px; color:#f5f3fb; font:14px \"DM Sans\",sans-serif; caret-color:#b4a7ff; } .ds-name-field::placeholder { color:#a6a3b9; } .ds-name-field:focus-visible { outline:2px solid #b4a7ff; outline-offset:4px; }"
+    },
+    {
+      "name": "UNO header navigation",
+      "kind": "nav",
+      "description": "Quiet text navigation on the active blue table.",
+      "html": "<nav class=\"ds-uno-nav\" aria-label=\"UNO navigation\"><a href=\"/\">GAME NIGHT</a><button>How to play</button></nav>",
+      "css": ".ds-uno-nav { display:flex; align-items:center; gap:24px; padding:12px; background:#082a46; } .ds-uno-nav a { color:#c0d9e9; text-decoration:none; font:600 12px \"Space Grotesk\",sans-serif; letter-spacing:.025em; } .ds-uno-nav button { min-height:36px; padding:8px 0; border:0; background:transparent; color:#c0d9e9; font:12px \"DM Sans\",sans-serif; cursor:pointer; } .ds-uno-nav a:hover, .ds-uno-nav button:hover { color:#f6f5fa; } .ds-uno-nav :is(a,button):focus-visible { outline:2px solid #c8f1ff; outline-offset:4px; }"
+    },
+    {
+      "name": "UNO playable card",
+      "kind": "card",
+      "description": "White rim, dark inset border, and a light diamond beneath an outlined value.",
+      "html": "<button class=\"ds-hand-card\" aria-label=\"Play blue seven\"><span class=\"ds-card-face\"><span class=\"ds-card-rim\"></span><span class=\"ds-card-frame\"></span><span class=\"ds-card-diamond\"></span><span class=\"ds-card-corner\">7</span><span class=\"ds-card-value\">7</span><span class=\"ds-card-corner ds-card-bottom\">7</span></span></button>",
+      "css": ".ds-hand-card { position:relative; width:108px; height:158px; padding:0; border:0; border-radius:12px; background:transparent; transform:translateY(-5px); transition:transform 180ms cubic-bezier(.16,1,.3,1); cursor:pointer; } .ds-hand-card::after { content:\"\"; position:absolute; inset:-3px; border:2px solid #baf4df; border-radius:14px; pointer-events:none; } .ds-card-face { display:block; position:relative; width:100%; height:100%; overflow:hidden; container-type:inline-size; border-radius:9%; background:#039fd8; box-shadow:0 5px 9px #00132140; } .ds-card-rim { position:absolute; z-index:4; inset:0; border:3cqw solid #fffef5; border-radius:inherit; } .ds-card-frame { position:absolute; z-index:3; inset:3%; border:1.25cqw solid #13232e; border-radius:7%; } .ds-card-diamond { position:absolute; left:50%; top:50%; width:67cqw; aspect-ratio:1; border-radius:3cqw; background:#fffef5; transform:translate(-50%,-50%) rotate(45deg); } .ds-card-corner { position:absolute; left:10%; top:7%; color:#fffef5; font:700 26cqw/1 \"Space Grotesk\",sans-serif; -webkit-text-stroke:1cqw #13232e; paint-order:stroke fill; } .ds-card-bottom { left:auto; top:auto; right:10%; bottom:7%; transform:rotate(180deg); } .ds-card-value { position:absolute; inset:0; display:grid; place-items:center; color:#039fd8; font:700 79cqw/1 \"Space Grotesk\",sans-serif; letter-spacing:-.04em; -webkit-text-stroke:2cqw #13232e; paint-order:stroke fill; } .ds-hand-card:hover, .ds-hand-card:focus-visible { transform:translateY(-17px); } .ds-hand-card:focus-visible { outline:2px solid #c8f1ff; outline-offset:4px; } .ds-hand-card:active { transform:translateY(-10px); } @media(prefers-reduced-motion:reduce) { .ds-hand-card { transition:none; } }"
+    },
+    {
+      "name": "UNO current opponent",
+      "kind": "custom",
+      "description": "Compact opponent label with current-turn outline and an actual card count.",
+      "html": "<div class=\"ds-opponent\"><div><strong>Player name</strong><span>Playing now</span></div><b aria-label=\"7 cards\">7</b></div>",
+      "css": ".ds-opponent { display:flex; align-items:center; gap:8px; width:178px; min-height:50px; padding:7px 10px; border:1px solid #b8edfa; border-radius:12px; background:#174f6a; color:#f6f5fa; font-family:\"DM Sans\",sans-serif; } .ds-opponent > div { flex:1; min-width:0; } .ds-opponent strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; } .ds-opponent span { display:block; margin-top:3px; color:#d2f5ff; font-size:11px; } .ds-opponent b { font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }"
+    },
+    {
+      "name": "UNO recent moves",
+      "kind": "custom",
+      "description": "Disclosure that opens the newest five real events above the table control.",
+      "html": "<details class=\"ds-history\"><summary>Recent moves</summary><ol><li>Latest game event</li></ol></details>",
+      "css": ".ds-history { position:relative; font-family:\"DM Sans\",sans-serif; } .ds-history summary { display:flex; align-items:center; min-height:36px; padding:8px 0; list-style:none; color:#b2d2e5; font-size:12px; cursor:pointer; } .ds-history summary::-webkit-details-marker { display:none; } .ds-history summary:hover { color:#f6f5fa; } .ds-history summary:focus-visible { outline:2px solid #c8f1ff; outline-offset:4px; } .ds-history ol { position:absolute; bottom:38px; left:0; width:290px; margin:0; padding:10px 18px 10px 30px; border-radius:12px; background:#082a43; box-shadow:0 12px 32px #00122170; } .ds-history li { padding:8px 0; color:#d5e9f5; font-size:12px; line-height:1.5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "An evening table for friends",
+    "overview": "The supplied blue card-table reference sets the active UNO game's visual direction. Opponents surround centered draw and discard piles. The local hand overlaps along the bottom. Keep the Deshi Tycoon design above and the charcoal UNO lobby unchanged.",
+    "keyCharacteristics": [
+      "A blue playing surface with opponents in their seats.",
+      "Vivid physical cards with white rims and diamond centers.",
+      "Clear legal actions, named colors, and private hands."
+    ],
+    "rules": [],
+    "dos": [],
+    "donts": []
+  }
+}

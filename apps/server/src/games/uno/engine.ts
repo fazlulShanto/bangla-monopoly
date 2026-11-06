@@ -13,6 +13,7 @@ const gameDataSchema = z.object({
   deck: z.array(cardSchema).max(108),
   discard: z.array(cardSchema).max(107),
   topCard: cardSchema,
+  lastPlay: z.object({ id: z.number().int().positive(), playerId: z.string() }).strict().nullable().default(null),
   currentColor: colorSchema,
   direction: z.union([z.literal(1), z.literal(-1)]),
   seed: z.number().int().min(0).max(0xffffffff),
@@ -84,7 +85,7 @@ export function createUnoGame(input: { players: readonly { id: string; name: str
   const game: PlayingUnoGame = {
     status: 'playing', turnPlayerId: first.id, drawnCardId: null,
     players, names: Object.fromEntries(input.players.map(player => [player.id, player.name])),
-    deck, discard: [], topCard, currentColor: topCard.color, direction: 1,
+    deck, discard: [], topCard, lastPlay: null, currentColor: topCard.color, direction: 1,
     seed: rng.seed, log: [], turnNumber: 1, catchablePlayerId: null,
   };
   log(game, `${first.name} goes first. Match ${topCard.color} or ${topCard.value}.`);
@@ -97,9 +98,11 @@ function playerIn(game: UnoGameState, playerId: string): UnoPlayer {
   return player;
 }
 
-function log(game: UnoGameState, text: string): void {
-  game.log.push({ id: (game.log.at(-1)?.id ?? 0) + 1, text });
+function log(game: UnoGameState, text: string): number {
+  const id = (game.log.at(-1)?.id ?? 0) + 1;
+  game.log.push({ id, text });
   game.log = game.log.slice(-100);
+  return id;
 }
 
 function nameOf(game: UnoGameState, playerId: string): string { return game.names[playerId] ?? 'Player'; }
@@ -238,7 +241,8 @@ export function applyUnoAction(state: UnoGameState, playerId: string, action: Un
     player.uno = player.hand.length === 1 && action.sayUno === true;
     if (player.hand.length === 1 && !player.uno) game.catchablePlayerId = playerId;
     const label = card.value === 'draw2' ? '+2' : card.value === 'wild4' ? 'Wild +4' : card.value === 'wild' ? 'Wild' : card.value;
-    log(game, `${nameOf(game, playerId)} plays ${card.color === 'wild' ? label : `${card.color} ${label}`}${card.color === 'wild' ? ` and chooses ${game.currentColor}` : ''}.${player.uno ? ' UNO!' : ''}`);
+    const id = log(game, `${nameOf(game, playerId)} plays ${card.color === 'wild' ? label : `${card.color} ${label}`}${card.color === 'wild' ? ` and chooses ${game.currentColor}` : ''}.${player.uno ? ' UNO!' : ''}`);
+    game.lastPlay = { id, playerId };
     let steps = 1;
     switch (card.value) {
       case 'reverse':
@@ -268,7 +272,7 @@ export function unoGameView(game: UnoGameState, playerId: string): UnoGameView {
   const ownTurn = game.status === 'playing' && game.turnPlayerId === playerId && player?.status === 'active';
   const data = {
     players: game.players.map(({ id, hand, status, uno }) => ({ id, cardCount: hand.length, status, uno })),
-    hand: player?.hand ?? [], topCard: game.topCard, currentColor: game.currentColor, direction: game.direction,
+    hand: player?.hand ?? [], topCard: game.topCard, lastPlay: game.lastPlay, currentColor: game.currentColor, direction: game.direction,
     drawCount: game.deck.length, playableCardIds: player ? playableCards(game, player).map(card => card.id) : [],
     canDraw: ownTurn && game.status === 'playing' && game.drawnCardId === null,
     canPass: ownTurn && game.status === 'playing' && game.drawnCardId !== null,

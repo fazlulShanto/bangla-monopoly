@@ -1,0 +1,7 @@
+.turn-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: 100%; }
+.turn-heading > .turn-title { min-width: 0; margin-bottom: 0; }
+.turn-controls > .turn-heading { margin-bottom: clamp(5px, 1.3cqw, 10px); }
+.turn-countdown { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; color: var(--uno-muted, var(--muted)); font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.turn-countdown-value { min-width: 3ch; font-weight: 600; }
+.turn-countdown.is-urgent { color: #ffd12d; }
+.turn-countdown.is-urgent .turn-countdown-value { font-weight: 700; }

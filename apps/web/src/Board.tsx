@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, ArrowUp, CircleHelp, Dice5, Gift, LockKeyhole, Trophy, UsersRound } from 'lucide-react';
-import { BOARD, BAIL, GO_SALARY, type Die, type GameAction, type RoomView, type Tile } from '@deshi/game';
+import { BOARD, BAIL, GO_SALARY, purchasePrice, type Die, type GameAction, type RoomView, type Tile } from '@deshi/game';
 import { BangladeshFlag, money, PropertyOwnerBadge, Spinner, TileIcon, TokenAvatar } from './ui';
 import { DICE_LANDING_MS, diceReducer, diceSnapshot, initialDiceState, type DicePresentation, type PawnPositions } from './dicePresentation';
 import ActivityText from './ActivityText';
 import LocationArt, { locationArtwork } from './LocationArt';
 import PropertyBuildings from './PropertyBuildings';
+import TurnCountdown from './TurnCountdown';
 
 export function tilePosition(id: number) {
   if (id <= 10) return { row: 11, column: 11 - id, edge: id === 0 || id === 10 ? 'corner' : 'bottom' };
@@ -172,19 +173,19 @@ function BoardTile({ tile, room, onHover, onSelect }: {
     style={{ gridRow: row, gridColumn: column }}
     onMouseEnter={() => onHover(tile)} onMouseLeave={() => onHover(null)}
     onFocus={() => onHover(tile)} onBlur={() => onHover(null)} onClick={() => onSelect(tile)}
-    aria-label={`${tile.name}${'price' in tile ? `, ${money(tile.price)}` : ''}${owner ? `, owned by ${owner.name}` : ''}${development}. View details.`}>
-    {illustrated && <LocationArt tile={tile} className="tile-artwork" />}
+    aria-label={`${tile.name}${'price' in tile ? `, ${money(owner ? tile.price : purchasePrice(tile, deed?.level ?? 0))}` : ''}${owner ? `, owned by ${owner.name}` : ''}${development}. View details.`}>
+    {illustrated && <LocationArt tile={tile} level={deed?.level ?? 0} className="tile-artwork" />}
     {tile.kind === 'street' && <span className="property-strip" style={{ backgroundColor: tile.color }} />}
     <span className="tile-content">
       {tile.kind !== 'street' && !illustrated && <span className="tile-icon"><TileIcon tile={tile} /></span>}
       <span className="tile-name">{tile.kind === 'go' ? 'GO' : tile.kind === 'goToJail' ? 'GO TO JAIL' : tile.kind === 'jail' ? 'JUST VISITING' : TILE_DISPLAY_NAMES[tile.name] ?? tile.shortName}</span>
-      {!owner && 'price' in tile && <span className="tile-price">{money(tile.price)}</span>}
+      {!owner && 'price' in tile && <span className="tile-price">{money(purchasePrice(tile, deed?.level ?? 0))}</span>}
       {tile.kind === 'tax' && <span className="tile-price">Pay {money(tile.amount)}</span>}
       {tile.kind === 'go' && <span className="tile-price">Collect {money(GO_SALARY)}</span>}
       {tile.kind === 'vacation' && <span className="tile-price">Take a break</span>}
     </span>
     {owner && <span className="tile-owner-details"><PropertyOwnerBadge number={ownerIndex + 1} name={owner.name} color={owner.color} className="property-owner-badge--tile" />{tile.kind === 'street' && deed && deed.level > 0 && <span className="tile-upgrade-level" aria-hidden="true" title={deed.level === 5 ? 'Hotel' : `${deed.level} ${deed.level === 1 ? 'house' : 'houses'}`}><ArrowUp size={10} strokeWidth={2.5} />{deed.level}</span>}</span>}
-    {tile.kind === 'street' && deed && <PropertyBuildings level={deed.level} className="tile-buildings" />}
+    {tile.kind === 'street' && deed && deed.level < 5 && <PropertyBuildings level={deed.level} className="tile-buildings" />}
   </button>;
 }
 
@@ -197,6 +198,8 @@ function BoardCenter({ room, playerId, presentation, onSettled, pending, disable
   const turnSeat = game?.status === 'playing' ? room?.seats.find((seat) => seat.id === game.turn.playerId) : null;
   const isMine = game?.status === 'playing' && game.turn.playerId === playerId;
   const actions = game?.legalActions.filter((action) => action.type !== 'build' && action.type !== 'resign') ?? [];
+  const purchaseTile = game?.status === 'playing' && game.turn.phase === 'purchase' ? BOARD[game.turn.tile] : undefined;
+  const purchaseCost = purchaseTile && 'price' in purchaseTile ? purchasePrice(purchaseTile, game?.deeds[purchaseTile.id]?.level ?? 0) : null;
   const winner = game?.status === 'finished' ? room?.seats.find((seat) => seat.id === game.winnerId) : null;
   const recentActivity = game?.log.slice(-6).reverse() ?? [];
   const playerNames = room?.seats.map((seat) => seat.name) ?? [];
@@ -212,14 +215,15 @@ function BoardCenter({ room, playerId, presentation, onSettled, pending, disable
         <p>{room ? 'Invite your friends. Pick your rivals.' : 'Bring your friends. Build your empire.'}</p></div>
       <div className="card-decks" aria-hidden="true"><div className="deck deck-chance"><CircleHelp /><span>CHANCE</span></div><span className="center-player-count">2–6 PLAYERS<br /><i>Endless possibilities.</i></span><div className="deck deck-treasure"><Gift /><span>TREASURE</span></div></div>
     </> : game.status === 'finished' ? <div className="game-result" aria-live="polite"><span className="winner-icon"><Trophy size={25} /></span><h2>{winner?.name ?? 'The last tycoon'} wins!</h2><p>An empire, well earned.</p><button className="button button-primary center-button" onClick={onLeave} disabled={disabled}>Back to lobby <ArrowRight size={16} /></button></div>
-      : <div className="turn-controls" aria-live="polite"><div className="turn-title"><span className="turn-dot" style={{ backgroundColor: turnSeat?.color ?? '#99efbb' }} /><h2>{isMine ? 'Your move.' : `${turnSeat?.name ?? 'Your friend'}’s turn.`}</h2></div>
-        <div className="center-actions">{isMine && actions.map((action) => {
+      : <div className="turn-controls"><div className="turn-heading"><div className="turn-title" aria-live="polite"><span className="turn-dot" style={{ backgroundColor: turnSeat?.color ?? '#99efbb' }} /><h2>{isMine ? 'Your move.' : `${turnSeat?.name ?? 'Your friend'}’s turn.`}</h2></div>
+        {room?.turnTimer && <TurnCountdown timer={room.turnTimer} serverTime={room.serverTime} />}</div>
+        <div className="center-actions" aria-live="polite">{isMine && actions.map((action) => {
           let label: string;
           let primary = true;
           let icon = <ArrowRight size={16} />;
           switch (action.type) {
             case 'roll': label = 'Roll dice'; icon = <Dice5 size={18} />; break;
-            case 'buy': label = 'Buy property'; break;
+            case 'buy': label = purchaseCost === null ? 'Buy property' : `Buy property · ${money(purchaseCost)}`; break;
             case 'decline': label = 'Pass'; primary = false; break;
             case 'payBail': label = `Pay bail · ${money(BAIL)}`; primary = false; icon = <LockKeyhole size={15} />; break;
             case 'endTurn': label = 'End turn'; break;
@@ -227,7 +231,7 @@ function BoardCenter({ room, playerId, presentation, onSettled, pending, disable
           }
           return <button key={action.type} className={`button ${primary ? 'button-primary' : 'button-secondary'} center-button`} disabled={disabled || rolling} onClick={() => onAction(action)}>{pending === action.type ? <Spinner /> : icon}{pending === action.type ? 'One moment…' : label}</button>;
         })}{!isMine && <span className="waiting-indicator"><span /><span /><span /></span>}</div>
-        <span className="roll-result">{presentation.phase === 'settled' && presentation.resultVisible ? <>{presentation.dice[0]} + {presentation.dice[1]} = {presentation.dice[0] + presentation.dice[1]}{presentation.dice[0] === presentation.dice[1] ? ' · doubles' : ''}</> : rolling ? 'Rolling…' : '\u00a0'}</span>
+        <span className="roll-result" aria-live="polite">{presentation.phase === 'settled' && presentation.resultVisible ? <>{presentation.dice[0]} + {presentation.dice[1]} = {presentation.dice[0] + presentation.dice[1]}{presentation.dice[0] === presentation.dice[1] ? ' · doubles' : ''}</> : rolling ? 'Rolling…' : '\u00a0'}</span>
       </div>}
     {game && <section className="center-activity" aria-label="Recent game activity">
       <div className="center-activity-heading"><h3>Latest activity</h3></div>
@@ -242,7 +246,7 @@ function BoardCenter({ room, playerId, presentation, onSettled, pending, disable
 function TilePeek({ tile, room }: { tile: Tile; room: RoomView | null }) {
   const deed = room?.game?.deeds[tile.id];
   const owner = deed && room?.seats.find((seat) => seat.id === deed.ownerId);
-  return <div className="tile-peek" role="tooltip"><span className="peek-icon" style={tile.kind === 'street' ? { color: tile.color } : undefined}>{locationArtwork(tile) ? <LocationArt tile={tile} className="peek-artwork" /> : <TileIcon tile={tile} size={22} />}{tile.kind === 'street' && deed && deed.level > 0 && <PropertyBuildings level={deed.level} className="peek-buildings" />}</span><div><strong>{tile.name}</strong><span>{owner ? `Owned by ${owner.name}` : 'price' in tile ? `${money(tile.price)} · Available` : tile.kind === 'tax' ? `Pay ${money(tile.amount)} to the bank` : tile.kind === 'go' ? `Collect ${money(GO_SALARY)} when you pass` : tile.kind === 'vacation' ? 'A well-deserved free stop' : 'A little twist in your journey'}</span>{tile.kind === 'street' && <span>Rent {money(tile.rent[deed?.level ?? 0])} · Build {money(tile.buildCost)}</span>}</div><span className="peek-hint">Click to inspect</span></div>;
+  return <div className="tile-peek" role="tooltip"><span className="peek-icon" style={tile.kind === 'street' ? { color: tile.color } : undefined}>{locationArtwork(tile) ? <LocationArt tile={tile} level={deed?.level ?? 0} className="peek-artwork" /> : <TileIcon tile={tile} size={22} />}{tile.kind === 'street' && deed && deed.level > 0 && deed.level < 5 && <PropertyBuildings level={deed.level} className="peek-buildings" />}</span><div><strong>{tile.name}</strong><span>{owner ? `Owned by ${owner.name}` : 'price' in tile ? `${money(purchasePrice(tile, deed?.level ?? 0))} · Available` : tile.kind === 'tax' ? `Pay ${money(tile.amount)} to the bank` : tile.kind === 'go' ? `Collect ${money(GO_SALARY)} when you pass` : tile.kind === 'vacation' ? 'A well-deserved free stop' : 'A little twist in your journey'}</span>{tile.kind === 'street' && <span>{deed?.level === 5 ? 'Hotel · ' : ''}Rent {money(tile.rent[deed?.level ?? 0])}{deed?.level !== 5 && <> · Build {money(tile.buildCost)}</>}</span>}</div><span className="peek-hint">Click to inspect</span></div>;
 }
 
 function BoardPresentation({ room, playerId, pending, disabled, onAction, onLeave, boardSize }: {

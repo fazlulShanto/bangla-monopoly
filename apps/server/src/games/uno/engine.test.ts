@@ -101,6 +101,44 @@ describe('UNO deck and private views', () => {
     expect(unoGameSchema.safeParse({ ...state, deck: [{ ...state.topCard, secret: 'hidden' }] }).success).toBe(false);
     expect(unoGameSchema.safeParse({ ...state, topCard: { id: 'bad', color: 'red', value: 'wild4' } }).success).toBe(false);
   });
+
+  test('opening cards and legacy saved games do not report a player play', () => {
+    const state = game();
+    expect(unoGameView(state, 'a').lastPlay).toBeNull();
+    const { lastPlay: _lastPlay, ...legacy } = state;
+    expect(unoGameSchema.parse(legacy).lastPlay).toBeNull();
+  });
+});
+
+describe('UNO public play attribution', () => {
+  test('draws, passes, and resignations preserve the player who placed the top card', () => {
+    const state = rig({ hands: [['red-1-0', 'blue-9-0'], ['green-2-0', 'blue-4-0'], ['green-1-0', 'yellow-1-0']], draw: ['red-4-0'] });
+    const played = applyUnoAction(state, 'a', { type: 'play', cardId: 'red-1-0', sayUno: true });
+    const playEntry = played.log.at(-1);
+    if (!playEntry) throw new Error('A played card must create a log entry');
+    expect(played.lastPlay).toEqual({ id: playEntry.id, playerId: 'a' });
+    const drawn = applyUnoAction(played, 'b', { type: 'draw' });
+    const passed = applyUnoAction(drawn, 'b', { type: 'pass' });
+    const resigned = applyUnoAction(passed, 'c', { type: 'resign' });
+    for (const snapshot of [played, drawn, passed, resigned]) {
+      const view = unoGameView(snapshot, 'b');
+      expect(view.lastPlay).toEqual(played.lastPlay);
+      expect(view.topCard.id).toBe('red-1-0');
+    }
+    expect(unoGameSchema.parse(resigned).lastPlay).toEqual(played.lastPlay);
+  });
+
+  test('the latest play identifies its actor after a skip and a winning wild-four penalty', () => {
+    const state = rig({ hands: [['red-skip-0', 'blue-9-0'], ['green-2-0', 'blue-4-0'], ['wild4-0']] });
+    const skipped = applyUnoAction(state, 'a', { type: 'play', cardId: 'red-skip-0', sayUno: true });
+    const finished = applyUnoAction(skipped, 'c', { type: 'play', cardId: 'wild4-0', color: 'blue' });
+    const view = unoGameView(finished, 'b');
+    expect(view.status).toBe('finished');
+    expect(view.lastPlay).toEqual({ id: 3, playerId: 'c' });
+    expect(view.topCard.id).toBe('wild4-0');
+    expect(view.log.at(-1)?.id).toBeGreaterThan(view.lastPlay?.id ?? 0);
+    expect(view.lastPlay?.id).toBeGreaterThan(skipped.lastPlay?.id ?? 0);
+  });
 });
 
 describe('UNO turn rules', () => {
@@ -202,11 +240,13 @@ describe('UNO declaration, leaving, and finish', () => {
     expect(unoGameView(missed, 'a').canCallUno).toBe(true);
     expect(() => applyUnoAction(missed, 'a', { type: 'catchUno', playerId: 'a' })).toThrow(RuleError);
     const caught = applyUnoAction(missed, 'b', { type: 'catchUno', playerId: 'a' });
+    expect(caught.lastPlay).toEqual(missed.lastPlay);
     expect(player(caught).hand).toHaveLength(3);
     expect(caught.catchablePlayerId).toBeNull();
     expect(caught.turnNumber).toBe(missed.turnNumber);
     expect(() => applyUnoAction(caught, 'b', { type: 'catchUno', playerId: 'a' })).toThrow(RuleError);
     const called = applyUnoAction(missed, 'a', { type: 'callUno' });
+    expect(called.lastPlay).toEqual(missed.lastPlay);
     expect(player(called).uno).toBe(true);
     expect(called.catchablePlayerId).toBeNull();
     const tooLate = applyUnoAction(missed, 'b', { type: 'draw' });

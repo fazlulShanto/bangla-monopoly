@@ -15,6 +15,7 @@ export type UnoGameView = {
   players: { id: string; cardCount: number; status: 'active' | 'out'; uno: boolean }[];
   hand: UnoCard[];
   topCard: UnoCard;
+  lastPlay: { id: number; playerId: string } | null;
   currentColor: UnoColor;
   direction: 1 | -1;
   drawCount: number;

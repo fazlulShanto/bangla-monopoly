@@ -419,7 +419,7 @@ describe('player trading', () => {
     const after = applyAction(pending, 'a', { type: 'resign' });
     expect(after.status).toBe('playing');
     expect(player(after, 'a').status).toBe('bankrupt');
-    expect(after.deeds[1]).toBeUndefined();
+    expect(after.deeds[1]).toEqual({ ownerId: null, level: 0 });
     expect(after.trades.map(trade => trade.id)).toEqual([unrelatedId]);
   });
 

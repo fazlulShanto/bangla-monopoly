@@ -25,6 +25,10 @@ export type Tile = { id: number; name: string; shortName: string } & (
   | { kind: 'go' | 'chance' | 'treasure' | 'jail' | 'vacation' | 'goToJail' }
 );
 
+export function purchasePrice(tile: Extract<Tile, { price: number }>, level = 0): number {
+  return tile.price + (tile.kind === 'street' ? tile.buildCost * level : 0);
+}
+
 export const GROUP_COLORS: Record<Group, string> = {
   brown: '#a97142', sky: '#72c9dc', pink: '#d77bb7', orange: '#f79a3b',
   red: '#ea6561', yellow: '#e8c744', green: '#42a886', blue: '#577ecd',
@@ -102,7 +106,7 @@ export type PlayerView = { id: string; cash: number; position: number; jail: { f
 export type ActivityEntry = { id: number; text: string };
 export type GameView = {
   players: PlayerView[];
-  deeds: Partial<Record<number, { ownerId: string; level: 0 | 1 | 2 | 3 | 4 | 5 }>>;
+  deeds: Partial<Record<number, { ownerId: string | null; level: 0 | 1 | 2 | 3 | 4 | 5 }>>;
   lastRoll: { playerId: string; dice: readonly [Die, Die] } | null;
   log: ActivityEntry[];
   tradeLog: ActivityEntry[];
@@ -112,7 +116,8 @@ export type GameView = {
 } & ({ status: 'playing'; turn: Turn } | { status: 'finished'; winnerId: string });
 export type SeatView = { id: string; name: string; color: string; token: TokenId; kind: 'human' | 'bot'; connected: boolean; ready: boolean };
 export type GameType = 'tycoon' | 'uno';
-export type RoomView = { code: string; kind: 'friends' | 'practice'; gameType: GameType; revision: number; hostId: string; startingCash: number; seats: SeatView[]; game: GameView | null; unoGame: UnoGameView | null };
+export type TurnTimer = { playerId: string; expiresAt: number; durationMs: number };
+export type RoomView = { code: string; kind: 'friends' | 'practice'; gameType: GameType; revision: number; hostId: string; startingCash: number; seats: SeatView[]; game: GameView | null; unoGame: UnoGameView | null; turnTimer: TurnTimer | null; serverTime: number };
 export type RoomCommand =
   | { type: 'ready'; ready: boolean }
   | { type: 'addBot' }
