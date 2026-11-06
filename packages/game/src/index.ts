@@ -36,6 +36,7 @@ export const TOKENS = TOKEN_IDS.map((id) => ({ id, name: TOKEN_NAMES[id] }));
 
 export const STARTING_CASH = GAME_CONFIG.startingCash.default;
 export const GO_SALARY = GAME_CONFIG.goSalary;
+export const GO_POSITION = 20;
 export const BAIL = GAME_CONFIG.bail;
 
 function street(id: number, name: string, group: Group, values: StreetValues): Tile {
@@ -43,7 +44,7 @@ function street(id: number, name: string, group: Group, values: StreetValues): T
 }
 
 export const BOARD: readonly Tile[] = [
-  { id: 0, name: 'Go', shortName: 'Go', kind: 'go' },
+  { id: 0, name: 'Kuakata Sea Beach', shortName: 'Kuakata Sea Beach', kind: 'vacation' },
   street(1, 'Dhaka', 'brown', GAME_CONFIG.properties.dhaka),
   { id: 2, name: 'Community Treasure', shortName: 'Treasure', kind: 'treasure' },
   street(3, 'Gazipur', 'brown', GAME_CONFIG.properties.gazipur),
@@ -63,7 +64,7 @@ export const BOARD: readonly Tile[] = [
   { id: 17, name: 'Community Treasure', shortName: 'Treasure', kind: 'treasure' },
   street(18, 'Jashore', 'orange', GAME_CONFIG.properties.jashore),
   street(19, 'Sundarbans', 'orange', GAME_CONFIG.properties.sundarbans),
-  { id: 20, name: 'Saint Martin vacation', shortName: 'Saint Martin', kind: 'vacation' },
+  { id: GO_POSITION, name: 'Go', shortName: 'Go', kind: 'go' },
   street(21, 'Mymensingh', 'red', GAME_CONFIG.properties.mymensingh),
   { id: 22, name: 'Chance', shortName: 'Chance', kind: 'chance' },
   street(23, 'Moulvibazar', 'red', GAME_CONFIG.properties.moulvibazar),

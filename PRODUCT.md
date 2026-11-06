@@ -15,7 +15,7 @@ Friends who want to play a property trading board game together online.
 Play a complete turn-based property game with private rooms and live updates. The first screen is a friends-room lobby, as confirmed by the user. A practice game is a secondary action.
 
 ## Capabilities and constraints
-The board uses Bangladesh cities, airports, and landmarks. Dhaka is the first property after Go and the most expensive property. Chittagong is next, followed by Cox's Bazar. Saint Martin is the vacation square. Use taka for game money. Hosts choose starting cash before play; practice games use the same setting. Keep adjustable game values in the shared `GAME_CONFIG` const object.
+The board uses Bangladesh cities, airports, and landmarks. Mymensingh is the first property after Go. Dhaka is the most expensive property. Chittagong is next, followed by Cox's Bazar. Kuakata Sea Beach is the vacation square. Use taka for game money. Hosts choose starting cash before play; practice games use the same setting. Keep adjustable game values in the shared `GAME_CONFIG` const object.
 
 The user requested polished visuals and animation. RichUp.io is a reference for the board game format. This is a new game, with its own identity.
 

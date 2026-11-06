@@ -131,13 +131,13 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .board-tile--street.board-tile--left .tile-content { padding-right: clamp(6px, 1.6cqw, 12px); }
 .board-tile--right .property-strip { top: 0; right: auto; left: 0; bottom: 0; width: clamp(4px, 1.04cqw, 8px); height: auto; }
 .board-tile--street.board-tile--right .tile-content { padding-left: clamp(6px, 1.6cqw, 12px); }
-.board-tile--go { background: #243e38; border-bottom-right-radius: 9px; }
+.board-tile--go { background: #243e38; border-top-left-radius: 9px; }
 .board-tile--go:hover { background: #315248; }
 .board-tile--go .tile-icon { color: var(--mint); }
 .board-tile--go .tile-icon svg { width: clamp(13px, 3.8cqw, 28px); height: clamp(13px, 3.8cqw, 28px); stroke-width: 2.6; }
 .board-tile--go .tile-name { font: 700 clamp(10px, 3cqw, 22px)/0.95 'Space Grotesk', sans-serif; color: #c5f4d6; letter-spacing: -0.035em; }
 .board-tile--go .tile-price { font-size: clamp(7px, 1.35cqw, 10px); color: #b1d5c3; }
-.board-tile--vacation { background: #243b3f; border-top-left-radius: 9px; }
+.board-tile--vacation { background: #243b3f; border-bottom-right-radius: 9px; }
 .board-tile--vacation .tile-icon { color: #a3dbc6; }
 .board-tile--vacation .tile-price { color: #b4d4cb; font-size: clamp(7px, 1.35cqw, 10px); }
 .board-tile--jail { background: #3f3544; border-bottom-left-radius: 9px; }
@@ -222,7 +222,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .board-caption > span { display: flex; align-items: center; gap: 6px; }
 .board-caption .tiny-dot { width: 4px; height: 4px; opacity: 0.7; }
 .board-tokens { position: absolute; inset: 5px; pointer-events: none; z-index: 4; }
-.board-pawn { width: clamp(14px, 3.1cqw, 23px); height: clamp(14px, 3.1cqw, 23px); border-radius: 7px; display: grid; place-items: center; color: #142331; position: absolute; transform: translate(-50%, -50%); box-shadow: 0 3px 7px #00000070; border: 1.5px solid #fdfbf2; overflow: hidden; transition: left 100ms linear, top 100ms linear; }
+.board-pawn { border-radius: 7px; display: grid; place-items: center; color: #142331; position: absolute; transform: translate(-50%, -50%); box-shadow: 0 3px 7px #00000070; border: 1.5px solid #fdfbf2; overflow: hidden; transition: left 100ms linear, top 100ms linear; }
 .board-pawn.is-current { box-shadow: 0 3px 8px #00000080, 0 0 0 3px #ffffff25; z-index: 1; }
 .tile-peek { position: absolute; bottom: 16%; left: 50%; transform: translateX(-50%); min-width: 240px; max-width: 74%; padding: 13px 15px 12px; display: flex; align-items: center; gap: 10px; background: #111b2cf5; border: 1px solid #53627c; border-radius: 10px; box-shadow: 0 12px 24px #0000005c; z-index: 8; pointer-events: none; }
 .peek-icon { position: relative; flex-shrink: 0; color: #b6d7c8; }
@@ -588,13 +588,12 @@ button:active:not(:disabled) { transform: translateY(1px); }
 }
 
 .app--fullscreen { height: 100dvh; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); overflow: hidden; }
-.app--fullscreen .site-header, .app--fullscreen .site-footer, .app--fullscreen .table-rail, .app--fullscreen .room-panel, .app--fullscreen .board-caption { display: none; }
+.app--fullscreen .site-header, .app--fullscreen .site-footer, .app--fullscreen .board-caption, .app--fullscreen .table-utilities .fullscreen-button { display: none; }
 .fullscreen-exit { display: inline-flex; align-items: center; align-self: flex-end; justify-content: center; gap: 7px; flex-shrink: 0; min-height: 36px; padding: 8px 10px; border: 1px solid #3a465e; border-radius: 8px; background: #171f32; color: #dbe1eb; font-size: 11px; }
 .fullscreen-exit:hover { background: #253047; color: #f8f5ed; }
-.app--fullscreen .workspace { display: flex; flex-direction: column; flex: 1; gap: 12px; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0; }
+.app--fullscreen .workspace { display: flex; flex-direction: column; flex: 1; gap: 12px; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0; overflow-y: auto; }
 .app--fullscreen .error-banner { flex-shrink: 0; max-height: 30dvh; overflow: auto; margin: 0; }
-.app--fullscreen .game-layout { flex: 1; min-height: 0; width: 100%; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 0; place-items: center; container-type: size; }
-.app--fullscreen .board-shell { grid-column: auto; grid-row: auto; width: min(100cqw, 100cqh); }
+.app--fullscreen .game-layout { flex: 1 0 auto; min-height: 0; width: 100%; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
@@ -872,22 +871,22 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .app--home:not(.app--fullscreen) .error-banner, .app--in-room:not(.app--fullscreen) .error-banner { flex-shrink: 0; margin: 0 0 12px; }
   .app--home:not(.app--fullscreen) .welcome-stage { flex: 1; min-height: 0; }
   .app--home:not(.app--fullscreen) .welcome-overlay { max-height: 100%; overflow-y: auto; }
-  .app--in-room:not(.app--fullscreen) .game-layout { --player-min: 150px; --room-min: 250px; --table-gap: clamp(12px, 1.6vw, 24px); flex: 1; min-height: 0; width: 100%; grid-template-columns: minmax(var(--player-min), 1fr) max-content minmax(var(--room-min), 1.4fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: var(--table-gap); container-type: size; }
-  .app--in-room:not(.app--fullscreen) .table-rail { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-height: 0; }
-  .app--in-room:not(.app--fullscreen) .players-panel { min-height: 0; overflow-y: auto; padding: 0; }
-  .app--in-room:not(.app--fullscreen) .players-list { display: flex; }
-  .app--in-room:not(.app--fullscreen) .rail-note { display: none; }
-  .app--in-room:not(.app--fullscreen) .table-utilities { display: flex; flex-direction: column; gap: 18px; margin-top: auto; padding: 18px 0 2px; }
+  .app--in-room .game-layout { --player-min: 150px; --room-min: 250px; --table-gap: clamp(12px, 1.6vw, 24px); flex: 1; min-height: 0; width: 100%; grid-template-columns: minmax(var(--player-min), 1fr) max-content minmax(var(--room-min), 1.4fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; gap: var(--table-gap); container-type: size; }
+  .app--in-room .table-rail { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; min-height: 0; }
+  .app--in-room .players-panel { min-height: 0; overflow-y: auto; padding: 0; }
+  .app--in-room .players-list { display: flex; }
+  .app--in-room .rail-note { display: none; }
+  .app--in-room .table-utilities { display: flex; flex-direction: column; gap: 18px; margin-top: auto; padding: 18px 0 2px; }
   .table-brand .brand-mark { width: 31px; height: 31px; border-radius: 8px; }
   .table-brand .brand-name { font-size: 13px; }
   .table-brand .brand-name > span { font-size: 6px; }
   .table-utilities .header-actions { margin: 0; gap: 3px; }
   .table-utilities .how-to-play { padding-left: 0; font-size: 12px; }
   .table-utilities .header-divider { margin: 0 2px; }
-  .app--in-room:not(.app--fullscreen) .board-shell { grid-column: 2; grid-row: 1; align-self: center; width: min(calc(100cqh - 30px), calc(100cqw - var(--player-min) - var(--room-min) - var(--table-gap) - var(--table-gap))); }
+  .app--in-room .board-shell { grid-column: 2; grid-row: 1; align-self: center; width: min(calc(100cqh - 30px), calc(100cqw - var(--player-min) - var(--room-min) - var(--table-gap) - var(--table-gap))); }
   .app--in-room:not(.app--fullscreen) .board-caption { padding-top: 12px; }
-  .app--in-room:not(.app--fullscreen) .room-panel { grid-column: 3; grid-row: 1; min-height: 0; max-height: 100%; }
-  .app--in-room:not(.app--fullscreen) .room-panel--lobby { align-self: start; overflow-y: auto; padding: 18px; }
+  .app--in-room .room-panel { grid-column: 3; grid-row: 1; min-height: 0; max-height: 100%; }
+  .app--in-room .room-panel--lobby { align-self: start; overflow-y: auto; padding: 18px; }
   .room-panel--lobby .lobby-heading h2 br, .room-panel--lobby .lobby-heading > p, .room-panel--lobby .room-bottom-note { display: none; }
   .room-panel--lobby .room-status-label { margin-bottom: 8px; font-size: 11px; }
   .room-panel--lobby .lobby-heading h2 { margin-bottom: 14px; font-size: 22px; }
@@ -905,8 +904,8 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .room-panel--lobby .start-game { margin-top: 2px; }
   .room-panel--lobby .start-reason, .room-panel--lobby .leave-button { font-size: 11px; }
   .room-panel--lobby .leave-button { margin-top: 8px; }
-  .app--in-room:not(.app--fullscreen) .game-panel { display: flex; flex-direction: column; height: 100%; }
-  .app--in-room:not(.app--fullscreen) .portfolio-panel, .app--in-room:not(.app--fullscreen) .trades-panel { flex: 1; min-height: 0; height: auto; }
+  .app--in-room .game-panel { display: flex; flex-direction: column; height: 100%; }
+  .app--in-room .portfolio-panel, .app--in-room .trades-panel { flex: 1; min-height: 0; height: auto; }
 }
 
 @media (max-width: 900px) {

@@ -2,7 +2,7 @@
 
 A property board game for Bangladesh game nights. Create a private room, share its link, and play with two to six people. Add bots to fill empty seats or start a practice game.
 
-The forty-space board uses Bangladesh cities, airports, and landmarks. Dhaka is the first property after Go and the most expensive property at ৳450, followed by Chittagong at ৳400 and Cox's Bazar at ৳350. Saint Martin is the vacation square. Game money uses taka.
+The forty-space board uses Bangladesh cities, airports, and landmarks. Mymensingh is the first property after Go. Dhaka is the most expensive property at ৳450, followed by Chittagong at ৳400 and Cox's Bazar at ৳350. Kuakata Sea Beach is the vacation square. Game money uses taka.
 
 ## Run locally
 
@@ -77,9 +77,9 @@ Edit `GAME_CONFIG` in `packages/game/src/config.ts`. Each property has a named e
 dhaka: { price: 450, buildCost: 200, rent: [55, 225, 650, 1500, 1800, 2200] },
 ```
 
-Rent amounts run from no buildings through one, two, three, and four houses, then a hotel. The same object contains starting cash defaults and limits, airport and utility prices, taxes, the Go salary, and bail. Restart the backend after editing. Changes apply to the whole game, including existing rooms; existing player balances stay as saved.
+Rent amounts run from no buildings through one, two, three, and four houses, then a hotel. Set `airportRent` to the rent for owning one, two, three, and four airports, in that order. The same object contains starting cash defaults and limits, airport and utility prices, taxes, the Go salary, and bail. Restart the backend after editing. Changes apply to the whole game, including existing rooms; existing player balances stay as saved.
 
-Doubles grant another roll. Three consecutive doubles send a player to jail. A jailed player can pay ৳50 or try to roll doubles. A third failed attempt requires bail. Saint Martin is a free vacation square. Chance and Treasure cards change money or position.
+Doubles grant another roll. Three consecutive doubles send a player to jail. A jailed player can pay ৳50 or try to roll doubles. A third failed attempt requires bail. Kuakata Sea Beach is a free vacation square. Chance and Treasure cards change money or position.
 
 Use the Trades tab to offer another player cash, properties, or a combination of both. The recipient can accept, decline, or negotiate a counteroffer. You can cancel an offer you sent. Trades are available between turns. Cash and properties move only when the recipient accepts, and offers close if their assets become unavailable. Streets in a color group with houses or a hotel cannot be traded. Bots compare the cash and property prices on both sides when they respond.
 

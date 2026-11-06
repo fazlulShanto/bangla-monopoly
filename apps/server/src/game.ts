@@ -1,4 +1,4 @@
-import { BAIL, BOARD, GO_SALARY, STARTING_CASH, type Die, type GameAction, type GameView, type PlayerView, type Tile, type TradeAction, type TradeAssets, type TradeOffer, type Turn } from '@deshi/game';
+import { BAIL, BOARD, GAME_CONFIG, GO_POSITION, GO_SALARY, STARTING_CASH, type Die, type GameAction, type GameView, type PlayerView, type Tile, type TradeAction, type TradeAssets, type TradeOffer, type Turn } from '@deshi/game';
 
 type GameData = Pick<GameView, 'players' | 'deeds' | 'lastRoll' | 'log' | 'tradeLog' | 'turnNumber' | 'trades'> & {
   nextTradeId: number;
@@ -21,7 +21,7 @@ export class RuleError extends Error {
 
 const CHANCE: readonly Card[] = [
   { text: 'Pohela Boishakh bonus. Collect ৳150.', kind: 'cash', amount: 150 },
-  { text: 'Take the Padma Express to Go. Collect ৳200.', kind: 'move', tile: 0 },
+  { text: 'Take the Padma Express to Go. Collect ৳200.', kind: 'move', tile: GO_POSITION },
   { text: 'Visit Saint Martin.', kind: 'move', tile: 31 },
   { text: 'Rickshaw repairs. Pay ৳50.', kind: 'cash', amount: -50 },
   { text: 'Your export business pays a dividend. Collect ৳100.', kind: 'cash', amount: 100 },
@@ -41,7 +41,7 @@ const TREASURE: readonly Card[] = [
   { text: 'Eid gift. Collect ৳200.', kind: 'cash', amount: 200 },
   { text: 'School fees. Pay ৳50.', kind: 'cash', amount: -50 },
   { text: 'Community savings mature. Collect ৳100.', kind: 'cash', amount: 100 },
-  { text: 'Go home via Go. Collect ৳200.', kind: 'move', tile: 0 },
+  { text: 'Go home via Go. Collect ৳200.', kind: 'move', tile: GO_POSITION },
   { text: 'Medical bill. Pay ৳100.', kind: 'cash', amount: -100 },
   { text: 'Birthday! Each other player gives you ৳10.', kind: 'birthday', amount: 10 },
   { text: 'Tax refund. Collect ৳20.', kind: 'cash', amount: 20 },
@@ -85,7 +85,7 @@ export function createGame(input: { players: readonly { id: string; name: string
   if (new Set(input.players.map(player => player.id)).size !== input.players.length) throw new RuleError('Each player needs a unique seat.');
   const game: GameState = {
     status: 'playing', turn: { playerId: first.id, phase: 'roll' },
-    players: input.players.map(player => ({ id: player.id, cash: input.startingCash ?? STARTING_CASH, position: 0, jail: null, status: 'active' })),
+    players: input.players.map(player => ({ id: player.id, cash: input.startingCash ?? STARTING_CASH, position: GO_POSITION, jail: null, status: 'active' })),
     names: Object.fromEntries(input.players.map(player => [player.id, player.name])),
     deeds: {}, lastRoll: null, log: [], tradeLog: [], turnNumber: 1, trades: [], nextTradeId: 1, seed: (input.seed >>> 0) || 1, doubles: 0,
     chanceDeck: [], treasureDeck: [], chanceIndex: 0, treasureIndex: 0,
@@ -319,7 +319,8 @@ function sendToJail(game: PlayingGame, player: PlayerView): void {
 
 function move(game: PlayingGame, player: PlayerView, spaces: number): void {
   const destination = player.position + spaces;
-  if (destination >= BOARD.length) {
+  const distanceToGo = (GO_POSITION - player.position + BOARD.length - 1) % BOARD.length + 1;
+  if (spaces >= distanceToGo) {
     player.cash += GO_SALARY;
     log(game, `${nameOf(game, player)} passed Go and collected ৳${GO_SALARY}.`);
   }
@@ -333,7 +334,7 @@ export function rentFor(game: GameState, tileId: number, diceTotal: number): num
   if (tile.kind === 'street') return tile.rent[deed.level] * (deed.level === 0 && ownsGroup(game, deed.ownerId, tile) ? 2 : 1);
   if (tile.kind === 'airport') {
     const count = BOARD.filter(other => other.kind === 'airport' && game.deeds[other.id]?.ownerId === deed.ownerId).length;
-    return 25 * (2 ** (count - 1));
+    return GAME_CONFIG.airportRent[count - 1];
   }
   if (tile.kind === 'utility') {
     const count = BOARD.filter(other => other.kind === 'utility' && game.deeds[other.id]?.ownerId === deed.ownerId).length;

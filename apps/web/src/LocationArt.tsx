@@ -1,6 +1,7 @@
 import type { Tile } from '@deshi/game';
 
 const LOCATION_SLUGS: Readonly<Partial<Record<number, string>>> = {
+  0: 'kuakata-sea-beach',
   1: 'dhaka',
   3: 'gazipur',
   5: 'shah-amanat-airport',
@@ -14,7 +15,6 @@ const LOCATION_SLUGS: Readonly<Partial<Record<number, string>>> = {
   16: 'khulna',
   18: 'jashore',
   19: 'sundarbans',
-  20: 'saint-martin',
   21: 'mymensingh',
   23: 'moulvibazar',
   24: 'sylhet',

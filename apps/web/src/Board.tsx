@@ -137,7 +137,7 @@ function BoardTokens({ room, boardSize, targets, reducedMotion }: { room: RoomVi
     const { row, column } = tilePosition(position);
     const neighbors = players.filter((item) => (positions[item.id] ?? targets[item.id] ?? item.position) === position && item.status === 'active');
     const offset = neighbors.findIndex((item) => item.id === player.id);
-    const pawnSize = Math.max(14, Math.min(23, boardSize * 0.031));
+    const pawnSize = Math.max(16, Math.min(28, boardSize * 0.038));
     const inward = trackCenter(1, boardSize - 12) + pawnSize / 2 + 2;
     const spacing = pawnSize * 0.75;
     const line = Math.floor(offset / 3);
@@ -151,7 +151,7 @@ function BoardTokens({ room, boardSize, targets, reducedMotion }: { room: RoomVi
     const y = trackCenter(row, boardSize - 12) + (row === 1 ? inward : row === 11 ? -inward : 0)
       + (horizontal ? row === 1 ? furtherIn : -furtherIn : along);
     return <div key={player.id} className={`board-pawn ${room.game?.status === 'playing' && room.game.turn.playerId === player.id ? 'is-current' : ''}`}
-      style={{ left: x, top: y, backgroundColor: seat.color }}>
+      style={{ left: x, top: y, width: pawnSize, height: pawnSize, backgroundColor: seat.color }}>
       <TokenAvatar token={seat.token} />
     </div>;
   })}</div>;
