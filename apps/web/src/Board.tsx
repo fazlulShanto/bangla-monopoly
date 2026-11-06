@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, CircleHelp, Dice5, Gift, LockKeyhole, Trophy, UsersRound } from 'lucide-react';
 import { BOARD, BAIL, GO_SALARY, type Die, type GameAction, type RoomView, type Tile } from '@deshi/game';
-import { BangladeshFlag, money, Spinner, TileIcon, TokenIcon } from './ui';
+import { BangladeshFlag, money, PropertyOwnerBadge, Spinner, TileIcon, TokenIcon } from './ui';
 import { DICE_LANDING_MS, diceReducer, diceSnapshot, initialDiceState, type DicePresentation, type PawnPositions } from './dicePresentation';
 import ActivityText from './ActivityText';
 import LocationArt, { locationArtwork } from './LocationArt';
@@ -137,9 +137,21 @@ function BoardTokens({ room, boardSize, targets, reducedMotion }: { room: RoomVi
     const { row, column } = tilePosition(position);
     const neighbors = players.filter((item) => (positions[item.id] ?? targets[item.id] ?? item.position) === position && item.status === 'active');
     const offset = neighbors.findIndex((item) => item.id === player.id);
+    const pawnSize = Math.max(14, Math.min(23, boardSize * 0.031));
+    const inward = trackCenter(1, boardSize - 12) + pawnSize / 2 + 2;
+    const spacing = pawnSize * 0.75;
+    const line = Math.floor(offset / 3);
+    const count = Math.min(3, neighbors.length - line * 3);
+    const along = (offset % 3 - (count - 1) / 2) * spacing;
+    const furtherIn = line * spacing;
+    const horizontal = row === 1 || row === 11;
+    const cornerShift = horizontal && (column === 1 || column === 11) ? (Math.min(neighbors.length, 3) - 1) * spacing / 2 : 0;
+    const x = trackCenter(column, boardSize - 12) + (column === 1 ? inward : column === 11 ? -inward : 0)
+      + (horizontal ? along + (column === 1 ? cornerShift : -cornerShift) : column === 1 ? furtherIn : -furtherIn);
+    const y = trackCenter(row, boardSize - 12) + (row === 1 ? inward : row === 11 ? -inward : 0)
+      + (horizontal ? row === 1 ? furtherIn : -furtherIn : along);
     return <div key={player.id} className={`board-pawn ${room.game?.status === 'playing' && room.game.turn.playerId === player.id ? 'is-current' : ''}`}
-      style={{ left: trackCenter(column, boardSize - 12) + (offset % 3 - Math.min(neighbors.length - 1, 2) / 2) * 13,
-        top: trackCenter(row, boardSize - 12) + 12 + Math.floor(offset / 3) * 12, backgroundColor: seat.color }}>
+      style={{ left: x, top: y, backgroundColor: seat.color }}>
       <TokenIcon token={seat.token} size={13} />
     </div>;
   })}</div>;
@@ -150,7 +162,8 @@ function BoardTile({ tile, room, onHover, onSelect }: {
 }) {
   const { row, column, edge } = tilePosition(tile.id);
   const deed = room?.game?.deeds[tile.id];
-  const owner = deed && room?.seats.find((seat) => seat.id === deed.ownerId);
+  const ownerIndex = deed ? room?.seats.findIndex((seat) => seat.id === deed.ownerId) ?? -1 : -1;
+  const owner = ownerIndex >= 0 ? room?.seats[ownerIndex] : undefined;
   const illustrated = !!locationArtwork(tile);
   const development = tile.kind === 'street' && deed && deed.level > 0
     ? deed.level === 5 ? ', hotel' : `, ${deed.level} ${deed.level === 1 ? 'house' : 'houses'}`
@@ -165,12 +178,11 @@ function BoardTile({ tile, room, onHover, onSelect }: {
     <span className="tile-content">
       {tile.kind !== 'street' && !illustrated && <span className="tile-icon"><TileIcon tile={tile} /></span>}
       <span className="tile-name">{tile.kind === 'go' ? 'GO' : tile.kind === 'goToJail' ? 'GO TO JAIL' : tile.kind === 'jail' ? 'JUST VISITING' : TILE_DISPLAY_NAMES[tile.name] ?? tile.shortName}</span>
-      {'price' in tile && <span className="tile-price">{money(tile.price)}</span>}
+      {owner ? <PropertyOwnerBadge number={ownerIndex + 1} name={owner.name} color={owner.color} className="property-owner-badge--tile" /> : 'price' in tile && <span className="tile-price">{money(tile.price)}</span>}
       {tile.kind === 'tax' && <span className="tile-price">Pay {money(tile.amount)}</span>}
       {tile.kind === 'go' && <span className="tile-price">Collect {money(GO_SALARY)}</span>}
       {tile.kind === 'vacation' && <span className="tile-price">Take a break</span>}
     </span>
-    {owner && <span className="ownership-dot" style={{ backgroundColor: owner.color }} />}
     {tile.kind === 'street' && deed && <PropertyBuildings level={deed.level} className="tile-buildings" />}
   </button>;
 }

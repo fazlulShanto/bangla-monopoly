@@ -1,11 +1,15 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import {
   ArrowUpRight, Bike, Building2, Cat, CircleHelp, Coffee, Droplets, Fish, Gift,
-  Landmark, LoaderCircle, LockKeyhole, Origami, Plane, Sailboat, Siren, TreePalm, X, Zap,
+  KeyRound, Landmark, LoaderCircle, LockKeyhole, Origami, Plane, Sailboat, Siren, TreePalm, X, Zap,
 } from 'lucide-react';
 import type { Tile, TokenId } from '@deshi/game';
 
 export const money = (amount: number) => `৳${amount.toLocaleString('en-US')}`;
+
+export function PropertyOwnerBadge({ number, name, color, className = '' }: { number: number; name: string; color: string; className?: string }) {
+  return <span className={`property-owner-badge ${className}`} style={{ backgroundColor: color }} title={`${name}'s property marker`} aria-hidden="true"><KeyRound size={10} strokeWidth={2.5} /><span>{number}</span></span>;
+}
 
 export function TokenIcon({ token, size = 20 }: { token: TokenId; size?: number }) {
   switch (token) {
