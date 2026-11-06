@@ -6,13 +6,14 @@ import {
 import { BAIL, BOARD, GAME_CONFIG, GO_SALARY, STARTING_CASH, type GameAction, type RoomView, type Tile } from '@deshi/game';
 import Board from './Board';
 import GamePanel from './GamePanel';
-import Lobby, { readPreference, writePreference } from './Lobby';
+import Lobby from './Lobby';
+import { readPreference, writePreference } from './preferences';
 import LocationArt, { locationArtwork } from './LocationArt';
 import Players from './Players';
 import PropertyBuildings from './PropertyBuildings';
 import GameCatalog from './GameCatalog';
 import { isTycoonPage, isUnoPage } from './navigation';
-import UnoGame from './UnoGame';
+import UnoGame from './games/uno/UnoGame';
 import { BangladeshFlag, Modal, money, Spinner, TileIcon } from './ui';
 import { useRoom } from './useRoom';
 

@@ -36,3 +36,11 @@ During an active game, use the board centre for dice, turn controls, and recent 
 Keep game text readable. Right-panel metadata, including turn details, must be at least 12px; activity body text uses 14px. Property names use 12px and prices 11px on boards wider than 580px. Smaller boards use fewer activity rows and more compact labels, with readable details available on tap. Use intentional break opportunities for long city names rather than arbitrary character breaks.
 
 The active game replaces the room controls with the current turn, dice, purchase decisions, player balances, property management, and live activity. All visible controls must perform their stated action.
+
+## UNO visual direction
+
+UNO uses a compact charcoal arena with a `#101116` background, `#191a23` panels, and `#b4a7ff` lavender actions. These colors belong to `apps/web/src/games/uno/uno.css`. Keep the existing Deshi Tycoon values above. Both games use Space Grotesk and DM Sans.
+
+Place players in a left rail on desktop and a compact grid on small screens. Keep the turn message, draw pile, and discard together in a rectangular arena. Use saturated card faces with large values and action symbols, without cream outer borders.
+
+Arrange the player's hand in a row with space between cards. Scroll the row when it overflows. Lavender marks playable cards and the active player. Show color names beside swatches and preserve keyboard focus and reduced-motion styles.

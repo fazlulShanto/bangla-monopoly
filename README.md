@@ -102,9 +102,12 @@ The server owns the deck, hands, legal moves, and turn order. Each player receiv
 
 ## Repository
 
-- `apps/web` contains the React interface, CSS board and dice, and Pusher client.
-- `apps/server` contains the Bun HTTP server, room coordinator, rules engine, bots, and MongoDB store.
-- `packages/game` contains the shared board, card types, and HTTP contracts.
+- `apps/web/src/games/uno` contains the UNO screens, table, hand, players, rules, card artwork, and local CSS.
+- `apps/web/src` contains the Deshi Tycoon interface and shared navigation, room client, UI components, and preference helpers.
+- `apps/server/src/games/uno/engine.ts` contains the UNO rules and bot decisions. Its engine and room tests live beside it.
+- `apps/server/src` contains the shared HTTP server, room coordinator, realtime publisher, MongoDB store, and Deshi Tycoon rules.
+- `packages/game/src/uno/index.ts` contains shared UNO card, action, and game view types.
+- `packages/game/src/index.ts` contains the board and shared HTTP contracts. `packages/game/src/config.ts` contains the Deshi Tycoon game values.
 
 The server controls dice, balances, ownership, cards, and legal actions. Authenticated HTTP requests carry commands and personalized game snapshots. Private Pusher channels carry revision hints. MongoDB saves game state, request receipts, and hashed reconnect credentials. The browser saves its private credential before creating a seat. A refresh can restore that seat. Invitation links contain the room code and never the resume token.
 

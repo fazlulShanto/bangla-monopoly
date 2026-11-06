@@ -3,16 +3,9 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Bot, Check, CheckCheck, CircleHelp
 import { GAME_CONFIG, STARTING_CASH, TOKENS, type TokenId } from '@deshi/game';
 import type { useRoom } from './useRoom';
 import { money, Spinner, TokenAvatar } from './ui';
+import { readPreference, writePreference } from './preferences';
 
 type RoomClient = ReturnType<typeof useRoom>;
-
-export function readPreference(key: string, fallback: string) {
-  try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
-}
-
-export function writePreference(key: string, value: string) {
-  try { localStorage.setItem(key, value); } catch { /* A browser without storage can still play. */ }
-}
 
 export function InviteControls({ code, onCopy, copied }: { code: string; onCopy: () => void; copied: boolean }) {
   return <div className="invite-controls"><div className="room-code"><span>ROOM CODE</span><strong>{code}</strong><button className="icon-button" onClick={onCopy} aria-label="Copy invite link">{copied ? <Check size={17} /> : <Copy size={16} />}</button></div><button className="button button-secondary copy-invite" onClick={onCopy}>{copied ? <CheckCheck size={16} /> : <Link size={16} />}{copied ? 'Invite link copied' : 'Copy invite link'}<ArrowUpRight size={14} /></button></div>;

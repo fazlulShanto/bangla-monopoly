@@ -1,7 +1,7 @@
 import { ArrowRight, Dices, UsersRound } from 'lucide-react';
-import { UnoShowcase } from './UnoCards';
+import { UnoShowcase } from './games/uno/UnoCards';
 import './game-catalog.css';
-import './uno.css';
+import './games/uno/uno.css';
 
 const games = [{
   name: 'Deshi Tycoon',

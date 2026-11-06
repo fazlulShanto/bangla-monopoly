@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { applyAction, applyTradeAction, chooseBotAction, chooseBotTradeAction, createGame, gameView, RuleError, type GameState } from './game';
 import { roomCommandSchema, type PrivateSeat, type RoomDocument } from './schema';
 import { StorageConflict, type RoomStore } from './store';
-import { applyUnoAction, chooseUnoBotAction, createUnoGame, unoGameView } from './uno';
+import { applyUnoAction, chooseUnoBotAction, createUnoGame, unoGameView } from './games/uno/engine';
 
 export type Credentials = { resumeToken: string; connectionId: string };
 export type RoomEvent = { event: 'room:updated'; data: { revision: number } } | { event: 'room:closed'; data: { reason: 'expired' | 'replaced' | 'left' } };

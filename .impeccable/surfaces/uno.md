@@ -1,29 +1,27 @@
-# UNO surface brief
+# UNO design brief
 
-Route: `/games/uno`. Related surface: the home game catalogue.
+Route: `/games/uno`. The home game catalogue also uses the UNO card artwork.
 
-This brief records the implemented extension. `DESIGN.md` remains the source for the established palette and typography.
+The user rejected the previous oval table, cream card borders, and overlapping fanned hand. The replacement uses a compact charcoal arena and a separate row of cards. `DESIGN.md` records the UNO palette alongside the unchanged Deshi Tycoon direction.
 
-## Direction contract
+## Visual choices
 
-**THESIS:** An evening card table for friends. The cards carry the visual identity, and the table keeps the next move clear.
+- Use `#101116` for the page, `#191a23` for panels, and `#b4a7ff` for primary actions and turn cues.
+- Keep Space Grotesk and DM Sans. Use clear turn messages and compact labels.
+- Give cards saturated red, yellow, green, or blue faces, large values, and action symbols. Remove cream outer borders.
+- Place players in a left rail on desktop and a three-column grid at 860px and narrower.
+- Group the turn message, draw pile, and discard in a rectangular arena.
+- Keep cards in the player's hand separate, with no overlap or fan rotation. Let the hand scroll horizontally when needed.
+- Show recent moves beside the desktop table and the latest move below the hand.
 
-**OWN-WORLD:** Reuse the established ink, slate, mint, Space Grotesk, and DM Sans. Four-color card faces, warm borders, and oval marks distinguish UNO.
+## Interaction
 
-**STORY:** Choose a private room or practice. Gather up to six players. Watch the active player, match a card, and race to an empty hand.
+Lavender outlines identify playable cards and the active player. Color names accompany swatches and Wild choices. Opponents show card counts. Only the player's own hand appears as card faces.
 
-**FIRST VIEWPORT:** The welcome screen pairs a large card fan with room setup. During play, opponents sit above an oval table. Draw and discard piles sit in its center, with the player's hand below and activity beside it.
+The welcome screen provides create, join, and bot practice controls. The waiting room shows actual seats, readiness, bot controls, and an invite. During play, the server supplies legal actions. The browser sends play, draw, pass, UNO, and catch commands through the shared room client.
 
-**FORM:** Code-led extension of the existing system. No concept seed or generated comp was used. Desktop hands fan; mobile hands scroll horizontally. No new raster assets are required.
+UNO components and CSS live in `apps/web/src/games/uno`. Shared preferences, room access, and UI components stay in `apps/web/src`. Keyboard focus and reduced-motion styles are defined in the UNO CSS.
 
-**FINISH:** Preserve the established design system. Check the welcome screen and six-player table at desktop and mobile sizes.
+## Verification status
 
-## Interaction and responsive behavior
-
-Mint outlines identify playable cards and the active opponent. The turn message states whose turn it is. Color names accompany swatches in the table and Wild picker. Opponents show card backs and counts.
-
-The activity rail hides at 860px. At 650px, room setup stacks, the table contracts, and cards form a horizontal row. Card movement stops when reduced motion is requested. Card geometry comes from CSS; action symbols use the existing icon library.
-
-## Verification limits
-
-Source review confirms the established palette and fonts in `uno.css`, `UnoCards.tsx`, and `UnoGame.tsx`. The independent finish reviewer returned `ship` after inspecting the welcome screen and six-player practice at 1470×740 and 390×844. Keyboard-focus appearance was not verified because Chrome blocked further automation. The current browser check uses Chrome because the integrated browser is unavailable, and memory storage because MongoDB is unreachable. Durable storage still requires a live MongoDB verification.
+Typecheck, production build, and all 151 Bun tests pass after the folder moves and redesign. A fresh browser review returned `ship` at 1440×900, 1280×740, and 390×844. Checks covered six-seat practice, card play, draw and pass, mobile hand scrolling and reload, host readiness, rules, and Wild +4 selection. Chrome was used because the integrated browser was unavailable. The preview uses temporary memory storage. Six human players, a natural win, and live MongoDB persistence were not rechecked in this browser pass.

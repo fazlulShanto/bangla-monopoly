@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { GAME_CONFIG, LEGACY_TOKEN_IDS, STARTING_CASH, TOKEN_IDS, resolveTokenId } from '@deshi/game';
 import type { GameState } from './game';
-import { unoGameSchema } from './uno';
+import { unoGameSchema } from './games/uno/engine';
 
 const token = z.enum([...TOKEN_IDS, ...LEGACY_TOKEN_IDS]).transform(resolveTokenId);
 const resumeToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

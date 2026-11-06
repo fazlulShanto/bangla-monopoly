@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { CreateRoom, EnterReply, Failure, RoomCommand } from '@deshi/game';
-import { RoomService, type Credentials, type RoomEvent, type RoomPublisher } from './rooms';
-import { createSchema, roomCommandSchema, roomSchema, type RoomDocument } from './schema';
-import { MemoryRoomStore, StorageConflict } from './store';
-import { chooseUnoBotAction } from './uno';
-import { createApp } from './index';
+import { RoomService, type Credentials, type RoomEvent, type RoomPublisher } from '../../rooms';
+import { createSchema, roomCommandSchema, roomSchema, type RoomDocument } from '../../schema';
+import { MemoryRoomStore, StorageConflict } from '../../store';
+import { chooseUnoBotAction } from './engine';
+import { createApp } from '../../index';
 
 type Entry = Extract<EnterReply, { ok: true }>;
 const token = () => randomBytes(32).toString('base64url');

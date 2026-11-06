@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { UNO_COLORS, type UnoCard } from '@deshi/game';
-import { RuleError } from './game';
-import { applyUnoAction, chooseUnoBotAction, createUnoGame, unoGameSchema, unoGameView, type UnoGameState } from './uno';
+import { RuleError } from '../../game';
+import { applyUnoAction, chooseUnoBotAction, createUnoGame, unoGameSchema, unoGameView, type UnoGameState } from './engine';
 
 const PLAYERS = [
   { id: 'a', name: 'Asha' }, { id: 'b', name: 'Bashir' }, { id: 'c', name: 'Chitra' },

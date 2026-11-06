@@ -1,6 +1,6 @@
 import { UNO_COLORS, type UnoAction, type UnoCard, type UnoColor, type UnoGameView } from '@deshi/game';
 import { z } from 'zod';
-import { RuleError } from './game';
+import { RuleError } from '../../game';
 
 const colorSchema = z.enum(UNO_COLORS);
 const cardSchema = z.union([
