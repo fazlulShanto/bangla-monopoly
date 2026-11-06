@@ -48,17 +48,31 @@ const turnSchema = z.discriminatedUnion('phase', [
   z.object({ playerId: z.string(), phase: z.literal('purchase'), tile: z.number().int().min(0).max(39) }),
   z.object({ playerId: z.string(), phase: z.literal('end') }),
 ]);
+const activityEntrySchema = z.object({ id: z.number().int(), text: z.string() });
+
+function isLegacyTradeEvent(text: string, names: string[]): boolean {
+  if (/^Trade #\d+ expired because its players or assets changed\.$/.test(text)) return true;
+  return names.some((name) => {
+    const prefix = `${name} `;
+    if (!text.startsWith(prefix)) return false;
+    return /^(?:(?:offered|countered) trade #\d+ to .+: .+ for .+|accepted trade #\d+ with .+: .+ for .+|(?:declined|canceled) trade #\d+)\.$/.test(text.slice(prefix.length));
+  });
+}
+
 const gameDataSchema = z.object({
   players: z.array(playerSchema).min(2).max(6),
   deeds: z.record(z.string(), z.object({ ownerId: z.string(), level }).optional()),
   lastRoll: z.object({ playerId: z.string(), dice: z.tuple([die, die]) }).nullable(),
-  log: z.array(z.object({ id: z.number().int(), text: z.string() })), turnNumber: z.number().int().positive(),
+  log: z.array(activityEntrySchema), tradeLog: z.array(activityEntrySchema).max(100).optional(), turnNumber: z.number().int().positive(),
   trades: z.array(z.object({ id: tradeId, fromPlayerId: z.string(), toPlayerId: z.string(), give: tradeAssetsSchema, receive: tradeAssetsSchema })).max(15).default([]),
   nextTradeId: tradeId.default(1),
   names: z.record(z.string(), z.string()), seed: z.number().int().nonnegative(), doubles: z.number().int().min(0).max(3),
   chanceDeck: z.array(z.number().int().min(0).max(15)).length(16), treasureDeck: z.array(z.number().int().min(0).max(15)).length(16),
   chanceIndex: z.number().int().nonnegative(), treasureIndex: z.number().int().nonnegative(),
-});
+}).transform((game) => ({
+  ...game,
+  tradeLog: game.tradeLog ?? game.log.filter((entry) => isLegacyTradeEvent(entry.text, Object.values(game.names))).slice(-100),
+}));
 export const gameSchema: z.ZodType<GameState> = z.intersection(gameDataSchema, z.discriminatedUnion('status', [
   z.object({ status: z.literal('playing'), turn: turnSchema }),
   z.object({ status: z.literal('finished'), winnerId: z.string() }),

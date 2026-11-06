@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { GAME_CONFIG, type TradeAction, type TradeAssets, type Turn } from '@deshi/game';
 import { applyAction, applyTradeAction, chooseBotTradeAction, createGame, gameView, RuleError, type GameState } from './game';
+import { gameSchema } from './schema';
 
 const PLAYERS = [
   { id: 'a', name: 'Asha' }, { id: 'b', name: 'Bashir' }, { id: 'c', name: 'Chitra' },
@@ -32,7 +33,66 @@ describe('player trading', () => {
     const state = game();
     expect(state.trades).toEqual([]);
     expect(gameView(state, 'a').trades).toEqual([]);
+    expect(gameView(state, 'a').tradeLog).toEqual([]);
     expect(Number.isSafeInteger(state.nextTradeId)).toBe(true);
+  });
+
+  test('trade activity records offers and outcomes for every player', () => {
+    let state = offer(game());
+    state = applyTradeAction(state, 'b', { type: 'offer', toPlayerId: 'a', give: { cash: 20, tiles: [] }, receive: { cash: 0, tiles: [] }, replacesTradeId: 1 });
+    state = applyTradeAction(state, 'a', { type: 'decline', tradeId: 2 });
+    state = offer(state);
+    state = applyTradeAction(state, 'a', { type: 'cancel', tradeId: 3 });
+    state = offer(state);
+    state = applyTradeAction(state, 'b', { type: 'accept', tradeId: 4 });
+    state = offer(state);
+    state = applyAction(state, 'a', { type: 'resign' });
+
+    expect(state.tradeLog.map((entry) => entry.text)).toEqual([
+      'Asha offered trade #1 to Bashir: ৳100 for nothing.',
+      'Bashir countered trade #2 to Asha: ৳20 for nothing.',
+      'Asha declined trade #2.',
+      'Asha offered trade #3 to Bashir: ৳100 for nothing.',
+      'Asha canceled trade #3.',
+      'Asha offered trade #4 to Bashir: ৳100 for nothing.',
+      'Bashir accepted trade #4 with Asha: ৳100 for nothing.',
+      'Asha offered trade #5 to Bashir: ৳100 for nothing.',
+      'Trade #5 expired because its players or assets changed.',
+    ]);
+    expect(gameView(state, 'a').tradeLog).toEqual(gameView(state, 'c').tradeLog);
+  });
+
+  test('ordinary game activity does not push trade activity out of the public history', () => {
+    let state = offer(game());
+    state = applyTradeAction(state, 'b', { type: 'accept', tradeId: 1 });
+    const tradeLog = state.tradeLog;
+    const lastTradeEventId = tradeLog.at(-1)?.id ?? 0;
+    state.players.forEach((candidate) => { candidate.cash = 100000; });
+    for (let step = 0; step < 250 && state.status === 'playing' && (state.log[0]?.id ?? 0) <= lastTradeEventId; step += 1) {
+      const action = state.turn.phase === 'roll' ? 'roll' : state.turn.phase === 'purchase' ? 'decline' : 'endTurn';
+      state = applyAction(state, state.turn.playerId, { type: action });
+    }
+    expect(state.log.every((entry) => entry.id > lastTradeEventId)).toBe(true);
+    expect(state.tradeLog).toEqual(tradeLog);
+  });
+
+  test('trade history keeps the latest 100 events', () => {
+    let state = game();
+    for (let index = 0; index < 55; index += 1) {
+      state = offer(state);
+      state = applyTradeAction(state, 'a', { type: 'cancel', tradeId: lastTrade(state).id });
+    }
+    expect(state.tradeLog).toHaveLength(100);
+    expect(state.tradeLog[0]?.text).toContain('offered trade #6');
+    expect(state.tradeLog.at(-1)?.text).toContain('canceled trade #55');
+  });
+
+  test('saved games without a trade history recover trade events still in the game log', () => {
+    let legacy = offer(game());
+    legacy = applyTradeAction(legacy, 'b', { type: 'accept', tradeId: 1 });
+    const expected = legacy.tradeLog;
+    Reflect.deleteProperty(legacy, 'tradeLog');
+    expect(gameSchema.parse(legacy).tradeLog).toEqual(expected);
   });
 
   const phases: Turn[] = [
@@ -370,6 +430,7 @@ describe('player trading', () => {
     expect(finished.status).toBe('finished');
     expect(finished.trades).toEqual([]);
     expect(gameView(finished, 'a').trades).toEqual([]);
+    expect(finished.tradeLog.at(-1)?.text).toBe(`Trade #${tradeId} expired because the game finished.`);
     const actions: TradeAction[] = [
       { type: 'offer', toPlayerId: 'b', give: { cash: 10, tiles: [] }, receive: { cash: 0, tiles: [] } },
       { type: 'accept', tradeId }, { type: 'decline', tradeId }, { type: 'cancel', tradeId },

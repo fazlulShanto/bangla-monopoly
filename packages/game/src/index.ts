@@ -85,11 +85,13 @@ export type Turn = { playerId: string } & (
   | { phase: 'roll' } | { phase: 'purchase'; tile: number } | { phase: 'end' }
 );
 export type PlayerView = { id: string; cash: number; position: number; jail: { failedRolls: 0 | 1 | 2 } | null; status: 'active' | 'bankrupt' };
+export type ActivityEntry = { id: number; text: string };
 export type GameView = {
   players: PlayerView[];
   deeds: Partial<Record<number, { ownerId: string; level: 0 | 1 | 2 | 3 | 4 | 5 }>>;
   lastRoll: { playerId: string; dice: readonly [Die, Die] } | null;
-  log: { id: number; text: string }[];
+  log: ActivityEntry[];
+  tradeLog: ActivityEntry[];
   legalActions: GameAction[];
   trades: TradeOffer[];
   turnNumber: number;

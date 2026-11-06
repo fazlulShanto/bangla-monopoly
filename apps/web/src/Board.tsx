@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
-import { ArrowRight, CircleHelp, Dice5, Gift, LockKeyhole, Trophy, UsersRound } from 'lucide-react';
+import { ArrowRight, ArrowUp, CircleHelp, Dice5, Gift, LockKeyhole, Trophy, UsersRound } from 'lucide-react';
 import { BOARD, BAIL, GO_SALARY, type Die, type GameAction, type RoomView, type Tile } from '@deshi/game';
 import { BangladeshFlag, money, PropertyOwnerBadge, Spinner, TileIcon, TokenIcon } from './ui';
 import { DICE_LANDING_MS, diceReducer, diceSnapshot, initialDiceState, type DicePresentation, type PawnPositions } from './dicePresentation';
@@ -178,11 +178,12 @@ function BoardTile({ tile, room, onHover, onSelect }: {
     <span className="tile-content">
       {tile.kind !== 'street' && !illustrated && <span className="tile-icon"><TileIcon tile={tile} /></span>}
       <span className="tile-name">{tile.kind === 'go' ? 'GO' : tile.kind === 'goToJail' ? 'GO TO JAIL' : tile.kind === 'jail' ? 'JUST VISITING' : TILE_DISPLAY_NAMES[tile.name] ?? tile.shortName}</span>
-      {owner ? <PropertyOwnerBadge number={ownerIndex + 1} name={owner.name} color={owner.color} className="property-owner-badge--tile" /> : 'price' in tile && <span className="tile-price">{money(tile.price)}</span>}
+      {!owner && 'price' in tile && <span className="tile-price">{money(tile.price)}</span>}
       {tile.kind === 'tax' && <span className="tile-price">Pay {money(tile.amount)}</span>}
       {tile.kind === 'go' && <span className="tile-price">Collect {money(GO_SALARY)}</span>}
       {tile.kind === 'vacation' && <span className="tile-price">Take a break</span>}
     </span>
+    {owner && <span className="tile-owner-details"><PropertyOwnerBadge number={ownerIndex + 1} name={owner.name} color={owner.color} className="property-owner-badge--tile" />{tile.kind === 'street' && deed && deed.level > 0 && <span className="tile-upgrade-level" aria-hidden="true" title={deed.level === 5 ? 'Hotel' : `${deed.level} ${deed.level === 1 ? 'house' : 'houses'}`}><ArrowUp size={10} strokeWidth={2.5} />{deed.level}</span>}</span>}
     {tile.kind === 'street' && deed && <PropertyBuildings level={deed.level} className="tile-buildings" />}
   </button>;
 }

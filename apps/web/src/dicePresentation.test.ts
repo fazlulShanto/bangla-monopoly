@@ -77,7 +77,7 @@ describe('dice presentation', () => {
       seats: [{ id: 'player', name: 'Rafi', color: '#abc', token: 'boat', kind: 'human', connected: true, ready: true }],
       game: {
         status: 'playing', turn: { playerId: 'player', phase: 'end' }, turnNumber: 1,
-        players: [{ id: 'player', position: 10, cash: 1500, status: 'active', jail: null }], deeds: {}, trades: [], legalActions: [],
+        players: [{ id: 'player', position: 10, cash: 1500, status: 'active', jail: null }], deeds: {}, trades: [], tradeLog: [], legalActions: [],
         lastRoll: { playerId: 'player', dice: [4, 4] },
         log: [{ id: 1, text: 'Rafi rolled 4 + 4 · doubles!' }, { id: 2, text: 'Rafi rolled 4 + 4 · doubles!' }, { id: 3, text: 'Rafi rolled doubles and left jail.' }],
       },

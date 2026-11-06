@@ -2,6 +2,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { ArrowLeftRight, ArrowRight, Check, CircleAlert, LockKeyhole, Plus, X } from 'lucide-react';
 import { BOARD, type GameView, type PlayerView, type SeatView, type TradeAction, type TradeAssets, type TradeOffer } from '@deshi/game';
 import type { useRoom } from './useRoom';
+import ActivityText from './ActivityText';
 import { Modal, money, Spinner, TileIcon, TokenIcon } from './ui';
 
 type RoomClient = ReturnType<typeof useRoom>;
@@ -60,16 +61,22 @@ export function TradesPanel({ game, seats, playerId, disabled, onCreate, onRevie
   const incoming = offers.filter((offer) => offer.toPlayerId === playerId);
   const outgoing = offers.filter((offer) => offer.fromPlayerId === playerId);
   const hasAvailablePlayer = game.players.some((player) => player.id !== playerId && player.status === 'active' && !offers.some((offer) => otherPlayerId(offer, playerId) === player.id));
-  return <div className="trades-panel" id="panel-trades" role="tabpanel" aria-label="Your trades">
+  return <div className="trades-panel" id="panel-trades" role="tabpanel" aria-label="Trades">
     <button className="button button-primary new-trade-button" disabled={disabled || !canTrade || !hasAvailablePlayer} onClick={onCreate}><Plus size={17} />New trade<ArrowRight size={16} /></button>
     {canTrade && !hasAvailablePlayer && <p className="trade-panel-note">You have an open offer with every player. Review one below to respond or cancel.</p>}
-    {offers.length ? <div className="trade-offers">{([{ title: 'Offers for you', offers: incoming }, { title: 'Waiting for a reply', offers: outgoing }]).filter((section) => section.offers.length).map((section) => <section className="trade-offer-section" key={section.title} aria-label={section.title}><h3>{section.title}<span>{section.offers.length}</span></h3>{section.offers.map((offer) => {
+    {offers.length > 0 && <div className="trade-offers">{([{ title: 'Offers for you', offers: incoming }, { title: 'Waiting for a reply', offers: outgoing }]).filter((section) => section.offers.length).map((section) => <section className="trade-offer-section" key={section.title} aria-label={section.title}><h3>{section.title}<span>{section.offers.length}</span></h3>{section.offers.map((offer) => {
       const incomingOffer = offer.toPlayerId === playerId;
       const other = seats.find((seat) => seat.id === otherPlayerId(offer, playerId));
       const sides = mySides(offer, playerId);
       return <button className="trade-offer" key={offer.id} onClick={() => onReview(offer)}><span className="trade-offer-heading"><span className="trade-player-dot" style={{ backgroundColor: other?.color }} /><strong>{other?.name ?? 'Player'}</strong><span>{incomingOffer ? 'View offer' : 'View trade'}<ArrowRight size={13} /></span></span><span className="trade-offer-assets"><span><small>You give</small>{assetDescription(sides.give)}</span><ArrowLeftRight size={15} /><span><small>You receive</small>{assetDescription(sides.receive)}</span></span></button>;
-    })}</section>)}</div> : <div className="panel-empty trade-empty"><ArrowLeftRight size={28} /><h3>A deal can change the game.</h3><p>Swap properties and cash with another player, even between your turns.</p><span>Choose <strong>New trade</strong> to make an offer.</span></div>}
+    })}</section>)}</div>}
     {game.status === 'finished' && <p className="trade-panel-note">Trading is closed. This game has finished.</p>}
+    <section className="trade-activity" aria-labelledby="trade-activity-heading">
+      <div className="trade-activity-heading"><h3 id="trade-activity-heading">Trade activity</h3><span>Visible to everyone</span></div>
+      {game.tradeLog.length ? <ol className="trade-activity-list" role="log" aria-label="Recent trade activity" aria-live="polite" aria-relevant="additions">
+        {game.tradeLog.slice().reverse().map((entry) => <li key={entry.id}><p><ActivityText text={entry.text} playerNames={seats.map((seat) => seat.name)} /></p></li>)}
+      </ol> : <p className="trade-activity-empty">No trades yet. Offers and responses will appear here for everyone.</p>}
+    </section>
   </div>;
 }
 
@@ -92,7 +99,7 @@ function TradeAssetsEditor({ game, player, seat, assets, onChange, side, disable
     <div className="trade-property-options trade-property-options--editable">{properties.length ? properties.map((tile) => {
       const selected = assets.tiles.includes(tile.id);
       const issue = unavailableProperty(game, tile.id, player.id);
-      return <label className={`trade-property-option${selected ? ' trade-property-option--selected' : ''}${issue ? ' trade-property-option--unavailable' : ''}`} key={tile.id}><input className="sr-only" type="checkbox" checked={selected} onChange={() => toggle(tile.id)} disabled={disabled || (!!issue && !selected)} /><span className="trade-property-icon" style={{ color: tile.kind === 'street' ? tile.color : '#b7c9e0' }}><TileIcon tile={tile} size={18} /></span><span className="trade-property-details"><strong>{tile.name}</strong><small>{issue ?? ('price' in tile ? money(tile.price) : '')}</small></span><span className="trade-property-state" aria-hidden="true">{selected ? <Check size={15} /> : issue ? <LockKeyhole size={14} /> : null}</span></label>;
+      return <label className={`trade-property-option${selected ? ' trade-property-option--selected' : ''}${issue ? ' trade-property-option--unavailable' : ''}`} key={tile.id}><input className="sr-only" type="checkbox" checked={selected} onChange={() => toggle(tile.id)} disabled={disabled || (!!issue && !selected)} /><span className="trade-property-icon" style={{ color: tile.kind === 'street' ? tile.color : '#b7c9e0' }}><TileIcon tile={tile} size={16} /></span><span className="trade-property-details"><strong>{tile.name}</strong><small>{issue ?? ('price' in tile ? money(tile.price) : '')}</small></span>{(selected || issue) && <span className="trade-property-state" aria-hidden="true">{selected ? <Check size={14} /> : <LockKeyhole size={14} />}</span>}</label>;
     }) : <p className="trade-properties-empty">No properties owned yet.<br />You can still trade cash.</p>}</div>
   </section>;
 }
@@ -164,13 +171,15 @@ export function TradeDialog({ client, state, onClose, onCounter }: {
   }
   return <Modal title={title} onClose={close} className="trade-modal">
     {!available || !mySeat || !theirSeat || !me || !them ? <div className="trade-unavailable" role="status"><ArrowLeftRight size={30} /><h3>This trade is no longer available.</h3><p>The offer was closed, a player left, or the game finished. Check Trades for current offers.</p><button className="button button-primary" onClick={close} disabled={busy}>Back to the game<ArrowRight size={16} /></button></div> : <form onSubmit={sendOffer}>
-      {state.kind === 'create' ? <div className="trade-recipient"><label htmlFor="trade-recipient">Trade with</label><select id="trade-recipient" value={recipientId} disabled={busy} onChange={(event) => { setToPlayerId(event.target.value); setReceive({ cash: '0', tiles: [] }); setFailed(false); }}>{game.players.filter((player) => player.id !== playerId && player.status === 'active').map((player) => {
-        const seat = seats.find((item) => item.id === player.id);
-        const hasOffer = game.trades.some((current) => (current.fromPlayerId === playerId && current.toPlayerId === player.id) || (current.toPlayerId === playerId && current.fromPlayerId === player.id));
-        return <option value={player.id} key={player.id} disabled={hasOffer}>{seat?.name ?? 'Player'}{seat?.kind === 'bot' ? ' · Bot' : ''}{hasOffer ? ' · Open trade' : ''}</option>;
-      })}</select></div> : <p className="trade-intro">{state.kind === 'counter' ? `Adjust the deal with ${theirSeat.name}. Sending it replaces their original offer.` : incoming ? `${theirSeat.name} made you an offer. Review both sides before accepting.` : `Waiting for ${theirSeat.name} to accept, decline, or make a counteroffer.`}</p>}
-      <div className="trade-columns">{reviewing && reviewSides ? <><TradeAssetsSummary assets={reviewSides.give} seat={mySeat} side="give" /><TradeAssetsSummary assets={reviewSides.receive} seat={theirSeat} side="receive" /></> : <><TradeAssetsEditor game={game} player={me} seat={mySeat} assets={give} onChange={updateGive} side="give" disabled={busy} /><TradeAssetsEditor game={game} player={them} seat={theirSeat} assets={receive} onChange={updateReceive} side="receive" disabled={busy} /></>}</div>
-      {!reviewing && <p className="trade-help"><LockKeyhole size={13} />Streets cannot be traded while their color group has houses or a hotel.</p>}
+      <div className="trade-form-body">
+        {state.kind === 'create' ? <div className="trade-recipient"><label htmlFor="trade-recipient">Trade with</label><select id="trade-recipient" value={recipientId} disabled={busy} onChange={(event) => { setToPlayerId(event.target.value); setReceive({ cash: '0', tiles: [] }); setFailed(false); }}>{game.players.filter((player) => player.id !== playerId && player.status === 'active').map((player) => {
+          const seat = seats.find((item) => item.id === player.id);
+          const hasOffer = game.trades.some((current) => (current.fromPlayerId === playerId && current.toPlayerId === player.id) || (current.toPlayerId === playerId && current.fromPlayerId === player.id));
+          return <option value={player.id} key={player.id} disabled={hasOffer}>{seat?.name ?? 'Player'}{seat?.kind === 'bot' ? ' · Bot' : ''}{hasOffer ? ' · Open trade' : ''}</option>;
+        })}</select></div> : <p className="trade-intro">{state.kind === 'counter' ? `Adjust the deal with ${theirSeat.name}. Sending it replaces their original offer.` : incoming ? `${theirSeat.name} made you an offer. Review both sides before accepting.` : `Waiting for ${theirSeat.name} to accept, decline, or make a counteroffer.`}</p>}
+        <div className="trade-columns">{reviewing && reviewSides ? <><TradeAssetsSummary assets={reviewSides.give} seat={mySeat} side="give" /><TradeAssetsSummary assets={reviewSides.receive} seat={theirSeat} side="receive" /></> : <><TradeAssetsEditor game={game} player={me} seat={mySeat} assets={give} onChange={updateGive} side="give" disabled={busy} /><TradeAssetsEditor game={game} player={them} seat={theirSeat} assets={receive} onChange={updateReceive} side="receive" disabled={busy} /></>}</div>
+        {!reviewing && <p className="trade-help"><LockKeyhole size={13} />Streets cannot be traded while their color group has houses or a hotel.</p>}
+      </div>
       {(error || validation || offline) && <div className={`trade-feedback${error ? ' trade-feedback--error' : ''}`} role={error ? 'alert' : 'status'}><CircleAlert size={16} /><p>{error ?? (offline ? 'Reconnect to send or respond to this trade. Your draft will stay here.' : validation)}</p></div>}
       {reviewing && offer ? <div className={`trade-dialog-actions${incoming ? ' trade-dialog-actions--incoming' : ''}`}>{incoming ? <><button className="button button-secondary" type="button" onClick={() => void submit({ type: 'decline', tradeId: offer.id })} disabled={busy || offline}>{submitting === 'decline' ? <Spinner /> : <X size={16} />}Decline</button><button className="button button-secondary" type="button" onClick={() => onCounter(offer)} disabled={busy || offline}><ArrowLeftRight size={16} />Counteroffer</button><button className="button button-primary" type="button" onClick={() => void submit({ type: 'accept', tradeId: offer.id })} disabled={busy || offline || !!validation}>{submitting === 'accept' ? <Spinner /> : <Check size={17} />}Accept trade</button></> : <><button className="button button-secondary" type="button" onClick={() => void submit({ type: 'cancel', tradeId: offer.id })} disabled={busy || offline}>{submitting === 'cancel' ? <Spinner /> : <X size={16} />}Cancel offer</button><button className="button button-primary" type="button" onClick={close} disabled={busy}>Done<Check size={16} /></button></>}</div> : <div className="trade-compose-footer"><p>{empty ? cashValue(give.cash) === 0 ? 'Add cash or a property to make an offer.' : 'A cash-only trade needs different amounts on each side.' : 'Nothing changes hands until the offer is accepted.'}</p><div className="trade-dialog-actions"><button className="button button-secondary" type="button" onClick={close} disabled={busy}>Cancel</button><button className="button button-primary" type="submit" disabled={busy || offline || !!validation || empty}>{submitting ? <Spinner /> : <ArrowRight size={17} />}{state.kind === 'counter' ? 'Send counteroffer' : 'Send offer'}</button></div></div>}
     </form>}

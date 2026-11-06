@@ -1,6 +1,6 @@
 import { BAIL, BOARD, GO_SALARY, STARTING_CASH, type Die, type GameAction, type GameView, type PlayerView, type Tile, type TradeAction, type TradeAssets, type TradeOffer, type Turn } from '@deshi/game';
 
-type GameData = Pick<GameView, 'players' | 'deeds' | 'lastRoll' | 'log' | 'turnNumber' | 'trades'> & {
+type GameData = Pick<GameView, 'players' | 'deeds' | 'lastRoll' | 'log' | 'tradeLog' | 'turnNumber' | 'trades'> & {
   nextTradeId: number;
   names: Record<string, string>;
   seed: number;
@@ -87,7 +87,7 @@ export function createGame(input: { players: readonly { id: string; name: string
     status: 'playing', turn: { playerId: first.id, phase: 'roll' },
     players: input.players.map(player => ({ id: player.id, cash: input.startingCash ?? STARTING_CASH, position: 0, jail: null, status: 'active' })),
     names: Object.fromEntries(input.players.map(player => [player.id, player.name])),
-    deeds: {}, lastRoll: null, log: [], turnNumber: 1, trades: [], nextTradeId: 1, seed: (input.seed >>> 0) || 1, doubles: 0,
+    deeds: {}, lastRoll: null, log: [], tradeLog: [], turnNumber: 1, trades: [], nextTradeId: 1, seed: (input.seed >>> 0) || 1, doubles: 0,
     chanceDeck: [], treasureDeck: [], chanceIndex: 0, treasureIndex: 0,
   };
   game.chanceDeck = shuffled(game, CHANCE.length);
@@ -103,9 +103,11 @@ function playerIn(game: GameState, playerId: string): PlayerView {
 }
 
 function nameOf(game: GameState, player: PlayerView): string { return game.names[player.id] ?? 'Player'; }
-function log(game: GameState, text: string): void {
-  game.log.push({ id: (game.log.at(-1)?.id ?? 0) + 1, text });
+function log(game: GameState, text: string, kind: 'game' | 'trade' = 'game'): void {
+  const entry = { id: (game.log.at(-1)?.id ?? 0) + 1, text };
+  game.log.push(entry);
   game.log = game.log.slice(-100);
+  if (kind === 'trade') game.tradeLog = [...game.tradeLog, entry].slice(-100);
 }
 
 function groupTiles(street: Street): Street[] {
@@ -147,10 +149,11 @@ function tradeProblem(game: GameState, trade: TradeOffer): string | undefined {
 }
 
 function invalidateTrades(game: GameState): void {
-  if (game.status === 'finished') { game.trades = []; return; }
   game.trades = game.trades.filter(trade => {
-    if (!tradeProblem(game, trade)) return true;
-    log(game, `Trade #${trade.id} expired because its players or assets changed.`);
+    if (game.status === 'playing' && !tradeProblem(game, trade)) return true;
+    log(game, game.status === 'finished'
+      ? `Trade #${trade.id} expired because the game finished.`
+      : `Trade #${trade.id} expired because its players or assets changed.`, 'trade');
     return false;
   });
 }
@@ -181,7 +184,7 @@ export function applyTradeAction(state: GameState, playerId: string, action: Tra
     game.trades = game.trades.filter(trade => trade.id !== replacement?.id);
     game.trades.push(structuredClone(offer));
     game.nextTradeId += 1;
-    log(game, `${nameOf(game, actor)} ${replacement ? 'countered' : 'offered'} trade #${offer.id} to ${game.names[action.toPlayerId] ?? 'Player'}: ${describeAssets(offer.give)} for ${describeAssets(offer.receive)}.`);
+    log(game, `${nameOf(game, actor)} ${replacement ? 'countered' : 'offered'} trade #${offer.id} to ${game.names[action.toPlayerId] ?? 'Player'}: ${describeAssets(offer.give)} for ${describeAssets(offer.receive)}.`, 'trade');
     return game;
   }
   const trade = state.trades.find(candidate => candidate.id === action.tradeId);
@@ -203,12 +206,12 @@ export function applyTradeAction(state: GameState, playerId: string, action: Tra
       to.cash = to.cash - trade.receive.cash + trade.give.cash;
       for (const id of trade.give.tiles) game.deeds[id] = { ownerId: to.id, level: 0 };
       for (const id of trade.receive.tiles) game.deeds[id] = { ownerId: from.id, level: 0 };
-      log(game, `${nameOf(game, actor)} accepted trade #${trade.id} with ${nameOf(game, from)}: ${describeAssets(trade.give)} for ${describeAssets(trade.receive)}.`);
+      log(game, `${nameOf(game, actor)} accepted trade #${trade.id} with ${nameOf(game, from)}: ${describeAssets(trade.give)} for ${describeAssets(trade.receive)}.`, 'trade');
       invalidateTrades(game);
       break;
     }
-    case 'decline': log(game, `${nameOf(game, actor)} declined trade #${trade.id}.`); break;
-    case 'cancel': log(game, `${nameOf(game, actor)} canceled trade #${trade.id}.`); break;
+    case 'decline': log(game, `${nameOf(game, actor)} declined trade #${trade.id}.`, 'trade'); break;
+    case 'cancel': log(game, `${nameOf(game, actor)} canceled trade #${trade.id}.`, 'trade'); break;
   }
   return game;
 }
@@ -256,7 +259,7 @@ export function legalActions(game: GameState, playerId: string): GameAction[] {
 }
 
 export function gameView(game: GameState, playerId: string): GameView {
-  const shared = { players: game.players, deeds: game.deeds, lastRoll: game.lastRoll, log: game.log, turnNumber: game.turnNumber, trades: game.trades, legalActions: legalActions(game, playerId) };
+  const shared = { players: game.players, deeds: game.deeds, lastRoll: game.lastRoll, log: game.log, tradeLog: game.tradeLog, turnNumber: game.turnNumber, trades: game.trades, legalActions: legalActions(game, playerId) };
   return game.status === 'playing' ? { ...shared, status: 'playing', turn: game.turn } : { ...shared, status: 'finished', winnerId: game.winnerId };
 }
 

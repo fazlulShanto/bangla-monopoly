@@ -297,9 +297,11 @@ describe('durable HTTP room service', () => {
       service = new RoomService(store, publisher);
       const restored = success(await service.snapshot(credentials(guest)));
       expect(restored.view.game?.trades).toEqual([trade]);
+      expect(restored.view.game?.tradeLog).toEqual(offered.view.game?.tradeLog);
       const request = { requestId: randomUUID(), expectedRevision: restored.view.revision, command: { type: 'trade' as const, action: { type: 'accept' as const, tradeId: trade.id } } };
       const accepted = success(await service.command(credentials(guest), request));
       expect(accepted.view.game?.trades).toEqual([]);
+      expect(success(await service.snapshot(credentials(host))).view.game?.tradeLog).toEqual(accepted.view.game?.tradeLog);
       expect(accepted.view.game?.players.find(player => player.id === host.playerId)?.cash).toBe(1400);
       expect(accepted.view.game?.players.find(player => player.id === guest.playerId)?.cash).toBe(1600);
       expect(success(await service.command(credentials(guest), request)).revision).toBe(accepted.revision);
