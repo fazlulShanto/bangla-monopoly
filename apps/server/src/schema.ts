@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { GAME_CONFIG, STARTING_CASH } from '@deshi/game';
+import { GAME_CONFIG, LEGACY_TOKEN_IDS, STARTING_CASH, TOKEN_IDS, resolveTokenId } from '@deshi/game';
 import type { GameState } from './game';
 
-const token = z.enum(['rickshaw', 'boat', 'tiger', 'tea', 'kite', 'fish']);
+const token = z.enum([...TOKEN_IDS, ...LEGACY_TOKEN_IDS]).transform(resolveTokenId);
 const resumeToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 const requestId = z.string().min(8).max(100).regex(/^[\w-]+$/);
 const name = z.string().trim().min(1).max(24).regex(/^[^\p{Cc}\p{Cf}<>]+$/u, 'Use a name without control characters or angle brackets.');

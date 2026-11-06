@@ -4,9 +4,9 @@ import type { GameView, SeatView } from '@deshi/game';
 import { TradesPanel } from './Trades';
 
 const seats: SeatView[] = [
-  { id: 'a', name: 'Asha', color: '#a00', token: 'boat', kind: 'human', connected: true, ready: true },
+  { id: 'a', name: 'Asha', color: '#a00', token: 'cat', kind: 'human', connected: true, ready: true },
   { id: 'b', name: 'Bashir', color: '#0a0', token: 'tiger', kind: 'human', connected: true, ready: true },
-  { id: 'c', name: 'Chitra', color: '#00a', token: 'kite', kind: 'human', connected: true, ready: true },
+  { id: 'c', name: 'Chitra', color: '#00a', token: 'deer', kind: 'human', connected: true, ready: true },
 ];
 
 const game: GameView = {

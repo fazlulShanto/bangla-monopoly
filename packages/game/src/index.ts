@@ -1,7 +1,20 @@
 import { GAME_CONFIG, type StreetValues } from './config';
 export { GAME_CONFIG } from './config';
 
-export type TokenId = 'rickshaw' | 'boat' | 'tiger' | 'tea' | 'kite' | 'fish';
+export const TOKEN_IDS = ['tiger', 'cat', 'kingfisher', 'fish', 'deer', 'buffalo'] as const;
+export const LEGACY_TOKEN_IDS = ['rickshaw', 'boat', 'tea', 'kite'] as const;
+export type TokenId = (typeof TOKEN_IDS)[number];
+export type SavedTokenId = TokenId | (typeof LEGACY_TOKEN_IDS)[number];
+
+export function resolveTokenId(token: SavedTokenId): TokenId {
+  switch (token) {
+    case 'rickshaw': return 'buffalo';
+    case 'boat': return 'kingfisher';
+    case 'tea': return 'cat';
+    case 'kite': return 'deer';
+    default: return token;
+  }
+}
 export type Group = 'brown' | 'sky' | 'pink' | 'orange' | 'red' | 'yellow' | 'green' | 'blue';
 export type Die = 1 | 2 | 3 | 4 | 5 | 6;
 export type Tile = { id: number; name: string; shortName: string } & (
@@ -16,11 +29,10 @@ export const GROUP_COLORS: Record<Group, string> = {
   red: '#ea6561', yellow: '#e8c744', green: '#42a886', blue: '#577ecd',
 };
 
-export const TOKENS: readonly { id: TokenId; name: string }[] = [
-  { id: 'rickshaw', name: 'Rickshaw' }, { id: 'boat', name: 'Boat' },
-  { id: 'tiger', name: 'Tiger' }, { id: 'tea', name: 'Tea cup' },
-  { id: 'kite', name: 'Kite' }, { id: 'fish', name: 'Hilsa' },
-];
+const TOKEN_NAMES: Record<TokenId, string> = {
+  tiger: 'Bengal tiger', cat: 'Cat', kingfisher: 'Kingfisher', fish: 'Hilsa', deer: 'Spotted deer', buffalo: 'Water buffalo',
+};
+export const TOKENS = TOKEN_IDS.map((id) => ({ id, name: TOKEN_NAMES[id] }));
 
 export const STARTING_CASH = GAME_CONFIG.startingCash.default;
 export const GO_SALARY = GAME_CONFIG.goSalary;

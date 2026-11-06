@@ -69,12 +69,12 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
     return result;
   }
   try {
-    const createRequest = { kind: 'friends', name: 'Asha', token: 'rickshaw', startingCash: 3000, requestId: randomUUID(), resumeToken: token() };
+    const createRequest = { kind: 'friends', name: 'Asha', token: 'tiger', startingCash: 3000, requestId: randomUUID(), resumeToken: token() };
     const created = entered(await post<EnterReply>('/api/rooms', createRequest));
     const retriedCreate = entered(await post<EnterReply>('/api/rooms', createRequest));
     assert.equal(retriedCreate.playerId, created.playerId, 'Entry request retries recover the same seat');
     const host = await connect(created);
-    const joinRequest = { code: created.view.code, name: 'Bashir', token: 'boat', requestId: randomUUID(), resumeToken: token() };
+    const joinRequest = { code: created.view.code, name: 'Bashir', token: 'cat', requestId: randomUUID(), resumeToken: token() };
     const joined = entered(await post<EnterReply>('/api/rooms/join', joinRequest));
     const friend = await connect(joined);
     await waitUntil(() => host.view.seats.length === 2, 'joined friend hint and authenticated snapshot');

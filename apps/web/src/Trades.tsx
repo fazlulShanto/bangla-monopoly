@@ -3,7 +3,7 @@ import { ArrowLeftRight, ArrowRight, Check, CircleAlert, LockKeyhole, Plus, X } 
 import { BOARD, type GameView, type PlayerView, type SeatView, type TradeAction, type TradeAssets, type TradeOffer } from '@deshi/game';
 import type { useRoom } from './useRoom';
 import ActivityText from './ActivityText';
-import { Modal, money, Spinner, TileIcon, TokenIcon } from './ui';
+import { Modal, money, Spinner, TileIcon, TokenAvatar } from './ui';
 
 type RoomClient = ReturnType<typeof useRoom>;
 export type TradeDialogState = { kind: 'create' } | { kind: 'review' | 'counter'; offer: TradeOffer };
@@ -93,7 +93,7 @@ function TradeAssetsEditor({ game, player, seat, assets, onChange, side, disable
     onChange({ ...assets, tiles: assets.tiles.includes(tileId) ? assets.tiles.filter((id) => id !== tileId) : [...assets.tiles, tileId] });
   }
   return <section className="trade-side" aria-labelledby={`${id}-title`}>
-    <h3 id={`${id}-title`}>{title}</h3><div className="trade-side-player"><span style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenIcon token={seat.token} size={21} /></span><div><strong>{seat.name}</strong><span>{money(player.cash)} available{seat.kind === 'bot' ? ' · Bot' : ''}</span></div></div>
+    <h3 id={`${id}-title`}>{title}</h3><div className="trade-side-player"><span style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenAvatar token={seat.token} /></span><div><strong>{seat.name}</strong><span>{money(player.cash)} available{seat.kind === 'bot' ? ' · Bot' : ''}</span></div></div>
     <div className="trade-cash"><label htmlFor={`${id}-cash`}>{cashLabel}</label><div className="trade-cash-input"><span aria-hidden="true">৳</span><input id={`${id}-cash`} type="number" inputMode="numeric" min="0" max={player.cash} step="1" value={assets.cash} onChange={(event) => onChange({ ...assets, cash: event.target.value })} disabled={disabled} aria-invalid={amount === null || amount > player.cash} /></div><label className="sr-only" htmlFor={`${id}-range`}>{cashLabel} slider</label><input className="trade-cash-slider" id={`${id}-range`} type="range" min="0" max={Math.max(0, player.cash)} step="1" value={Math.min(amount ?? 0, player.cash)} onChange={(event) => onChange({ ...assets, cash: event.target.value })} disabled={disabled || player.cash === 0} aria-valuetext={money(Math.min(amount ?? 0, player.cash))} /><div className="trade-cash-limits"><span>{money(0)}</span><span>{money(player.cash)}</span></div></div>
     <div className="trade-properties-heading"><h4>Properties</h4><span>{assets.tiles.length} selected</span></div>
     <div className="trade-property-options trade-property-options--editable">{properties.length ? properties.map((tile) => {
@@ -105,7 +105,7 @@ function TradeAssetsEditor({ game, player, seat, assets, onChange, side, disable
 }
 
 function TradeAssetsSummary({ assets, seat, side }: { assets: TradeAssets; seat: SeatView; side: 'give' | 'receive' }) {
-  return <section className="trade-side trade-side--summary" aria-label={side === 'give' ? 'What you give' : 'What you receive'}><h3>{side === 'give' ? 'You give' : 'You receive'}</h3><div className="trade-side-player"><span style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenIcon token={seat.token} size={21} /></span><div><strong>{seat.name}</strong><span>{seat.kind === 'bot' ? 'Bot player' : 'Player'}</span></div></div><div className="trade-summary-cash"><span>Cash</span><strong>{money(assets.cash)}</strong></div><div className="trade-properties-heading"><h4>Properties</h4><span>{assets.tiles.length}</span></div><div className="trade-property-options">{assets.tiles.length ? assets.tiles.map((id) => {
+  return <section className="trade-side trade-side--summary" aria-label={side === 'give' ? 'What you give' : 'What you receive'}><h3>{side === 'give' ? 'You give' : 'You receive'}</h3><div className="trade-side-player"><span style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenAvatar token={seat.token} /></span><div><strong>{seat.name}</strong><span>{seat.kind === 'bot' ? 'Bot player' : 'Player'}</span></div></div><div className="trade-summary-cash"><span>Cash</span><strong>{money(assets.cash)}</strong></div><div className="trade-properties-heading"><h4>Properties</h4><span>{assets.tiles.length}</span></div><div className="trade-property-options">{assets.tiles.length ? assets.tiles.map((id) => {
     const tile = BOARD.find((item) => item.id === id);
     return tile ? <div className="trade-summary-property" key={id}><span className="trade-property-icon" style={{ color: tile.kind === 'street' ? tile.color : '#b7c9e0' }}><TileIcon tile={tile} size={18} /></span><span>{tile.name}</span><Check size={14} /></div> : null;
   }) : <p className="trade-properties-empty">No properties included.</p>}</div></section>;

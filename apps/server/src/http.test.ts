@@ -15,6 +15,7 @@ test('HTTP validates private channel ownership, errors, safe configuration, and 
     const created: EnterReply = await fetch(`${url}/api/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'friends', name: 'Asha', token: 'rickshaw', requestId: randomUUID(), resumeToken: randomBytes(32).toString('base64url') }) }).then(response => response.json());
     if (!created.ok) throw new Error(created.message);
     expect(created).not.toHaveProperty('chat');
+    expect(created.view.seats[0]?.token).toBe('buffalo');
     const headers = { Authorization: `Bearer ${created.resumeToken}`, 'X-Connection-Id': created.connectionId, 'Content-Type': 'application/x-www-form-urlencoded' };
     const removedChat = await fetch(`${url}/api/chat`, { method: 'POST', headers, body: new URLSearchParams({ text: 'Hello' }) });
     expect(removedChat.status).toBe(404);
@@ -44,7 +45,7 @@ test('HTTP validates starting cash for room creation and host changes', async ()
     key: 'test-public-key', async publish() {}, authorize() { return { auth: 'test' }; }, async ping() { return true; },
   } });
   const url = `http://127.0.0.1:${app.port}`;
-  const input = { kind: 'friends', name: 'Asha', token: 'rickshaw', requestId: randomUUID(), resumeToken: randomBytes(32).toString('base64url') };
+  const input = { kind: 'friends', name: 'Asha', token: 'buffalo', requestId: randomUUID(), resumeToken: randomBytes(32).toString('base64url') };
   const invalid = [GAME_CONFIG.startingCash.min - 1, GAME_CONFIG.startingCash.max + 1, 1500.5, '3000', null];
   try {
     for (const startingCash of invalid) {
@@ -55,6 +56,7 @@ test('HTTP validates starting cash for room creation and host changes', async ()
     const created: EnterReply = await fetch(`${url}/api/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...input, startingCash: GAME_CONFIG.startingCash.min }) }).then(response => response.json());
     if (!created.ok) throw new Error(created.message);
     expect(created.view.startingCash).toBe(GAME_CONFIG.startingCash.min);
+    expect(created.view.seats[0]?.token).toBe('buffalo');
     const headers = { Authorization: `Bearer ${created.resumeToken}`, 'X-Connection-Id': created.connectionId, 'Content-Type': 'application/json' };
     for (const startingCash of invalid) {
       const response = await fetch(`${url}/api/commands`, { method: 'POST', headers, body: JSON.stringify({ requestId: randomUUID(), expectedRevision: created.view.revision, command: { type: 'setStartingCash', startingCash } }) });

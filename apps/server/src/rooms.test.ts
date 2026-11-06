@@ -14,7 +14,7 @@ function success<T extends { ok: true }>(reply: T | Failure): T {
 }
 const credentials = (entry: Extract<EnterReply, { ok: true }>): Credentials => ({ resumeToken: entry.resumeToken, connectionId: entry.connectionId });
 const publisher: RoomPublisher = { async publish() {} };
-const createInput = () => ({ kind: 'friends' as const, name: 'Asha', token: 'rickshaw' as const, requestId: randomUUID(), resumeToken: token() });
+const createInput = () => ({ kind: 'friends' as const, name: 'Asha', token: 'tiger' as const, requestId: randomUUID(), resumeToken: token() });
 async function waitFor(check: () => Promise<boolean>, timeout = 4000): Promise<void> {
   const end = Date.now() + timeout;
   while (Date.now() < end) { if (await check()) return; await Bun.sleep(10); }
@@ -44,7 +44,7 @@ async function command(service: RoomService, auth: Credentials, value: RoomComma
 
 async function friends(service: RoomService) {
   const host = success(await service.create(createInput()));
-  const guest = success(await service.join({ code: host.view.code, name: 'Bashir', token: 'boat', requestId: randomUUID(), resumeToken: token() }));
+  const guest = success(await service.join({ code: host.view.code, name: 'Bashir', token: 'cat', requestId: randomUUID(), resumeToken: token() }));
   success(await command(service, credentials(guest), { type: 'ready', ready: true }));
   success(await command(service, credentials(host), { type: 'start' }));
   return { host, guest };
@@ -83,7 +83,7 @@ describe('durable HTTP room service', () => {
       expect(host.view.startingCash).toBe(3000);
       const retry = success(await service.create({ ...input, startingCash: 4000 }));
       expect(retry.view.startingCash).toBe(3000);
-      const guest = success(await service.join({ code: host.view.code, name: 'Bashir', token: 'boat', requestId: randomUUID(), resumeToken: token() }));
+      const guest = success(await service.join({ code: host.view.code, name: 'Bashir', token: 'cat', requestId: randomUUID(), resumeToken: token() }));
       expect(guest.view.startingCash).toBe(3000);
       const forbidden = await command(service, credentials(guest), { type: 'setStartingCash', startingCash: 5000 });
       expect(forbidden).toMatchObject({ ok: false, code: 'RULE' });
@@ -151,18 +151,35 @@ describe('durable HTTP room service', () => {
     } finally { await service.close(); }
   });
 
+  test('old saved token choices restore as six distinct animal avatars', async () => {
+    const store = new MemoryRoomStore();
+    const service = new RoomService(store, publisher);
+    try {
+      const host = success(await service.create(createInput()));
+      for (let index = 0; index < 5; index += 1) {
+        success(await command(service, credentials(host), { type: 'addBot' }));
+      }
+      const saved = await store.get(host.view.code);
+      if (!saved) throw new Error('Missing saved room');
+      const oldTokens = ['rickshaw', 'boat', 'tiger', 'tea', 'kite', 'fish'];
+      const restored = roomSchema.parse({ ...saved, seats: saved.seats.map((seat, index) => ({ ...seat, token: oldTokens[index] })) });
+      expect(restored.seats.map((seat) => seat.token)).toEqual(['buffalo', 'kingfisher', 'tiger', 'cat', 'deer', 'fish']);
+      expect(new Set(restored.seats.map((seat) => seat.token)).size).toBe(6);
+    } finally { await service.close(); }
+  });
+
   test('concurrent joins with an occupied preference get unique tokens and preserve the six-player limit', async () => {
     const store = new MemoryRoomStore();
     const service = new RoomService(store, publisher);
     try {
       const created = success(await service.create(createInput()));
-      const joins = await Promise.all(Array.from({ length: 5 }, (_, index) => service.join({ code: created.view.code, name: `Guest ${index + 1}`, token: 'rickshaw', requestId: randomUUID(), resumeToken: token() })));
+      const joins = await Promise.all(Array.from({ length: 5 }, (_, index) => service.join({ code: created.view.code, name: `Guest ${index + 1}`, token: 'tiger', requestId: randomUUID(), resumeToken: token() })));
       const joined = joins.map(reply => success(reply));
       expect(new Set(joined.map(reply => reply.playerId)).size).toBe(5);
       const saved = await store.get(created.view.code);
       expect(saved?.seats).toHaveLength(6);
       expect(saved?.seats.map(seat => seat.token).sort()).toEqual(TOKENS.map(item => item.id).sort());
-      const rejected = await service.join({ code: created.view.code, name: 'Seventh guest', token: 'rickshaw', requestId: randomUUID(), resumeToken: token() });
+      const rejected = await service.join({ code: created.view.code, name: 'Seventh guest', token: 'tiger', requestId: randomUUID(), resumeToken: token() });
       expect(rejected).toEqual({ ok: false, code: 'RULE', message: 'This room already has six players.' });
       const afterRejection = await store.get(created.view.code);
       expect(afterRejection?.seats).toHaveLength(6);
@@ -175,18 +192,18 @@ describe('durable HTTP room service', () => {
     let service = new RoomService(store, publisher);
     try {
       const created = success(await service.create(createInput()));
-      const input = { code: created.view.code, name: 'Bashir', token: 'rickshaw' as const, requestId: randomUUID(), resumeToken: token() };
+      const input = { code: created.view.code, name: 'Bashir', token: 'tiger' as const, requestId: randomUUID(), resumeToken: token() };
       store.fault = 'after';
       const joined = success(await service.join(input));
       expect(joined.view.seats).toHaveLength(2);
-      expect(joined.view.seats.find(seat => seat.id === joined.playerId)?.token).toBe('boat');
+      expect(joined.view.seats.find(seat => seat.id === joined.playerId)?.token).toBe('cat');
       await service.close();
       service = new RoomService(store, publisher);
       const recovered = success(await service.join(input));
       expect(recovered.playerId).toBe(joined.playerId);
       expect(recovered.connectionId).toBe(joined.connectionId);
       expect(recovered.view.seats).toHaveLength(2);
-      expect(recovered.view.seats.find(seat => seat.id === joined.playerId)?.token).toBe('boat');
+      expect(recovered.view.seats.find(seat => seat.id === joined.playerId)?.token).toBe('cat');
       expect(recovered.view.seats.find(seat => seat.id === created.playerId)?.connected).toBe(false);
       expect(recovered.view.seats.find(seat => seat.id === joined.playerId)?.connected).toBe(true);
       expect(JSON.stringify(await store.saved(created.view.code))).not.toContain(input.resumeToken);

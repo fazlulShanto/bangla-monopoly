@@ -222,8 +222,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .board-caption > span { display: flex; align-items: center; gap: 6px; }
 .board-caption .tiny-dot { width: 4px; height: 4px; opacity: 0.7; }
 .board-tokens { position: absolute; inset: 5px; pointer-events: none; z-index: 4; }
-.board-pawn { width: clamp(14px, 3.1cqw, 23px); height: clamp(14px, 3.1cqw, 23px); border-radius: 7px; display: grid; place-items: center; color: #142331; position: absolute; transform: translate(-50%, -50%); box-shadow: 0 3px 7px #00000070; border: 1.5px solid #fdfbf2; transition: left 100ms linear, top 100ms linear; }
-.board-pawn svg { width: clamp(8px, 1.8cqw, 13px); height: clamp(8px, 1.8cqw, 13px); stroke-width: 2.7; }
+.board-pawn { width: clamp(14px, 3.1cqw, 23px); height: clamp(14px, 3.1cqw, 23px); border-radius: 7px; display: grid; place-items: center; color: #142331; position: absolute; transform: translate(-50%, -50%); box-shadow: 0 3px 7px #00000070; border: 1.5px solid #fdfbf2; overflow: hidden; transition: left 100ms linear, top 100ms linear; }
 .board-pawn.is-current { box-shadow: 0 3px 8px #00000080, 0 0 0 3px #ffffff25; z-index: 1; }
 .tile-peek { position: absolute; bottom: 16%; left: 50%; transform: translateX(-50%); min-width: 240px; max-width: 74%; padding: 13px 15px 12px; display: flex; align-items: center; gap: 10px; background: #111b2cf5; border: 1px solid #53627c; border-radius: 10px; box-shadow: 0 12px 24px #0000005c; z-index: 8; pointer-events: none; }
 .peek-icon { position: relative; flex-shrink: 0; color: #b6d7c8; }
@@ -266,12 +265,18 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .token-label .field-label { margin-bottom: 10px; }
 .token-label > span:last-child { color: #9fb5a9; font-size: 9px; margin-bottom: 10px; }
 .token-picker { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.token-option { border: 1px solid #3a465e; border-radius: 8px; background: #222c40; color: #aab7ce; position: relative; padding: 8px 0; display: grid; place-items: center; }
+.token-avatar { display: block; width: 100%; height: 100%; background-image: url('./assets/animal-crew.png'); background-repeat: no-repeat; background-size: 300% 200%; }
+.token-avatar--tiger { background-position: 0 0; }
+.token-avatar--cat { background-position: 50% 0; }
+.token-avatar--kingfisher { background-position: 100% 0; }
+.token-avatar--fish { background-position: 0 100%; }
+.token-avatar--deer { background-position: 50% 100%; }
+.token-avatar--buffalo { background-position: 100% 100%; }
+.token-option { border: 1px solid #3a465e; border-radius: 8px; background: #222c40; color: #aab7ce; position: relative; aspect-ratio: 1; padding: 0; display: grid; place-items: center; }
 .token-option.selected { color: #a1efbd; background: #a1efbd0e; border-color: #a1efbd; }
 .token-option:hover { background: #344159; color: #f5f3eb; }
 .token-option.selected:hover { background: #a1efbd20; color: var(--mint); }
-.token-option > svg { width: 19px; height: 19px; }
-.token-check { width: 10px; height: 10px; position: absolute; top: -4px; right: -3px; background: var(--mint); color: #173428; border-radius: 50%; display: grid; place-items: center; }
+.token-check { width: 14px; height: 14px; position: absolute; top: -5px; right: -4px; background: var(--mint); color: #173428; border-radius: 50%; display: grid; place-items: center; }
 .button { min-height: 42px; padding: 11px 15px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 8px; font-size: 11px; font-weight: 600; text-decoration: none; }
 .button-primary { background: #a1efbd; color: #132d22; box-shadow: 0 4px 10px #00000013; }
 .button-primary:hover:not(:disabled) { background: #b8fbce; box-shadow: 0 5px 13px #00000020; }
@@ -676,8 +681,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .input-with-icon input { font-size: 12px; }
   .token-label > span:last-child { font-size: 11px; }
   .token-picker { gap: 9px; }
-  .token-option { padding: 12px 0; }
-  .token-option > svg { width: 22px; height: 22px; }
   .button { font-size: 12px; }
   .create-button { min-height: 47px; }
   .form-note { font-size: 9px; }
@@ -761,7 +764,6 @@ button:active:not(:disabled) { transform: translateY(1px); }
   .open-seat { gap: 8px; font-size: 10px; }
   .open-seat-avatar { width: 30px; height: 30px; }
   .player-avatar { width: 31px; height: 34px; }
-  .player-avatar svg { width: 18px; height: 18px; }
   .player-row { gap: 7px; }
   .site-footer { padding: 21px 18px; gap: 14px; font-size: 8px; line-height: 1.7; }
   .site-footer > span { max-width: 195px; }
@@ -853,7 +855,7 @@ button:active:not(:disabled) { transform: translateY(1px); }
 .welcome-setup .starting-cash-field > p { font-size: 11px; }
 .welcome-setup .token-label { margin-top: 18px; }
 .welcome-setup .token-label > span:last-child { font-size: 11px; }
-.welcome-setup .token-option { min-height: 43px; }
+.welcome-setup .token-option { min-height: 0; }
 .welcome-setup .create-button { margin-top: 18px; font-size: 13px; }
 .welcome-setup .form-note { font-size: 11px; }
 .welcome-setup .practice-section { margin-top: 18px; padding-top: 16px; }

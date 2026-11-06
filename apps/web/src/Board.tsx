@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, ArrowUp, CircleHelp, Dice5, Gift, LockKeyhole, Trophy, UsersRound } from 'lucide-react';
 import { BOARD, BAIL, GO_SALARY, type Die, type GameAction, type RoomView, type Tile } from '@deshi/game';
-import { BangladeshFlag, money, PropertyOwnerBadge, Spinner, TileIcon, TokenIcon } from './ui';
+import { BangladeshFlag, money, PropertyOwnerBadge, Spinner, TileIcon, TokenAvatar } from './ui';
 import { DICE_LANDING_MS, diceReducer, diceSnapshot, initialDiceState, type DicePresentation, type PawnPositions } from './dicePresentation';
 import ActivityText from './ActivityText';
 import LocationArt, { locationArtwork } from './LocationArt';
@@ -152,7 +152,7 @@ function BoardTokens({ room, boardSize, targets, reducedMotion }: { room: RoomVi
       + (horizontal ? row === 1 ? furtherIn : -furtherIn : along);
     return <div key={player.id} className={`board-pawn ${room.game?.status === 'playing' && room.game.turn.playerId === player.id ? 'is-current' : ''}`}
       style={{ left: x, top: y, backgroundColor: seat.color }}>
-      <TokenIcon token={seat.token} size={13} />
+      <TokenAvatar token={seat.token} />
     </div>;
   })}</div>;
 }

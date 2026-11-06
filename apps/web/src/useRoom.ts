@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Pusher from 'pusher-js';
 import { GameConnectionError, readReply } from './response';
-import { GAME_CONFIG, TOKENS } from '@deshi/game';
+import { GAME_CONFIG, LEGACY_TOKEN_IDS, TOKEN_IDS, resolveTokenId } from '@deshi/game';
 import type {
   CommandReply, CreateRoom, EnterReply, Failure,
-  JoinRoom, RealtimeConfig, RoomCommand, RoomView, SnapshotReply, TokenId,
+  JoinRoom, RealtimeConfig, RoomCommand, RoomView, SavedTokenId, SnapshotReply,
 } from '@deshi/game';
 
 type Session = { playerId: string; view: RoomView };
@@ -41,8 +41,8 @@ function clearSavedSeat() {
   try { sessionStorage.removeItem(RESUME_KEY); } catch { /* The current seat is already cleared in memory. */ }
 }
 
-function isToken(value: unknown): value is TokenId {
-  return TOKENS.some((token) => token.id === value);
+function isToken(value: unknown): value is SavedTokenId {
+  return TOKEN_IDS.some((token) => token === value) || LEGACY_TOKEN_IDS.some((token) => token === value);
 }
 
 function savedEntry(): Entry | null {
@@ -54,7 +54,7 @@ function savedEntry(): Entry | null {
       || !('token' in input) || !isToken(input.token)
       || !('requestId' in input) || typeof input.requestId !== 'string'
       || !('resumeToken' in input) || typeof input.resumeToken !== 'string') return null;
-    const common = { name: input.name, token: input.token, requestId: input.requestId, resumeToken: input.resumeToken };
+    const common = { name: input.name, token: resolveTokenId(input.token), requestId: input.requestId, resumeToken: input.resumeToken };
     if (value.kind === 'join' && 'code' in input && typeof input.code === 'string') {
       return { kind: 'join', input: { ...common, code: input.code } };
     }

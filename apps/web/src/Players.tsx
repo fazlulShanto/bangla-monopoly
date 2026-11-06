@@ -1,6 +1,6 @@
 import { Bot, Check, Crown, DoorOpen, KeyRound, Plus, UserRound, UsersRound, X } from 'lucide-react';
 import { STARTING_CASH, type RoomView } from '@deshi/game';
-import { money, PropertyOwnerBadge, TokenIcon } from './ui';
+import { money, PropertyOwnerBadge, TokenAvatar } from './ui';
 
 export default function Players({ room, playerId, disabled, onRemoveBot }: {
   room: RoomView | null; playerId: string | null; disabled: boolean; onRemoveBot: (id: string) => void;
@@ -15,7 +15,7 @@ export default function Players({ room, playerId, disabled, onRemoveBot }: {
       const player = room?.game?.players.find((item) => item.id === seat.id);
       const isCurrent = seat.id === activeTurn;
       return <div key={seat.id} className={`player-row ${isCurrent ? 'player-row--current' : ''} ${player?.status === 'bankrupt' ? 'player-row--bankrupt' : ''}`}>
-        <span className="player-avatar" style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenIcon token={seat.token} size={21} /><i className={seat.connected || seat.kind === 'bot' ? 'connected' : ''} /></span>
+        <span className="player-avatar" style={{ color: seat.color, backgroundColor: `${seat.color}18` }}><TokenAvatar token={seat.token} /><i className={seat.connected || seat.kind === 'bot' ? 'connected' : ''} /></span>
         <div className="player-info"><strong><span>{seat.name}</span>{seat.id === playerId && <small>you</small>}</strong><span>{player ? player.status === 'bankrupt' ? 'Bankrupt' : <>{money(player.cash)}{player.jail && <span className="jail-label">In jail</span>}</> : seat.kind === 'bot' ? <><Bot size={10} /> Bot ready</> : seat.ready ? <><Check size={11} /> Ready to play</> : seat.connected ? 'Getting ready…' : 'Reconnecting…'}</span>{isCurrent && <span className="player-turn-indicator">Current turn</span>}</div>
         <span className="player-row-end">{room?.game && <><PropertyOwnerBadge number={index + 1} name={seat.name} color={seat.color} /><span className="sr-only">Property owner marker {index + 1}</span></>}{seat.id === room?.hostId && <Crown size={13} aria-label="Room host" />}{isHost && !room?.game && seat.kind === 'bot' && <button className="tiny-button" onClick={() => onRemoveBot(seat.id)} disabled={disabled} aria-label={`Remove ${seat.name}`}><X size={13} /></button>}</span>
       </div>;

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import {
-  ArrowUpRight, Bike, Building2, Cat, CircleHelp, Coffee, Droplets, Fish, Gift,
-  KeyRound, Landmark, LoaderCircle, LockKeyhole, Origami, Plane, Sailboat, Siren, TreePalm, X, Zap,
+  ArrowUpRight, Building2, CircleHelp, Droplets, Gift,
+  KeyRound, Landmark, LoaderCircle, LockKeyhole, Plane, Siren, TreePalm, X, Zap,
 } from 'lucide-react';
 import type { Tile, TokenId } from '@deshi/game';
 
@@ -11,16 +11,8 @@ export function PropertyOwnerBadge({ number, name, color, className = '' }: { nu
   return <span className={`property-owner-badge ${className}`} style={{ backgroundColor: color }} title={`${name}'s property marker`} aria-hidden="true"><KeyRound size={10} strokeWidth={2.5} /><span>{number}</span></span>;
 }
 
-export function TokenIcon({ token, size = 20 }: { token: TokenId; size?: number }) {
-  switch (token) {
-    case 'rickshaw': return <Bike size={size} />;
-    case 'boat': return <Sailboat size={size} />;
-    case 'tiger': return <Cat size={size} />;
-    case 'tea': return <Coffee size={size} />;
-    case 'kite': return <Origami size={size} />;
-    case 'fish': return <Fish size={size} />;
-    default: { const exhaustive: never = token; return exhaustive; }
-  }
+export function TokenAvatar({ token }: { token: TokenId }) {
+  return <span className={`token-avatar token-avatar--${token}`} aria-hidden="true" />;
 }
 
 export function TileIcon({ tile, size = 20 }: { tile: Tile; size?: number }) {

@@ -2,7 +2,7 @@ import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { ArrowRight, ArrowUpRight, Bot, Check, CheckCheck, CircleHelp, Copy, Dices, Link, LockKeyhole, Plus, ShieldCheck, UsersRound } from 'lucide-react';
 import { GAME_CONFIG, STARTING_CASH, TOKENS, type TokenId } from '@deshi/game';
 import type { useRoom } from './useRoom';
-import { money, Spinner, TokenIcon } from './ui';
+import { money, Spinner, TokenAvatar } from './ui';
 
 type RoomClient = ReturnType<typeof useRoom>;
 
@@ -29,12 +29,12 @@ export default function Lobby({ client, copied, onCopy, onLeave, onRules }: {
   const inviteCode = new URLSearchParams(window.location.search).get('room') ?? '';
   const [tab, setTab] = useState<'create' | 'join'>(inviteCode ? 'join' : 'create');
   const [name, setName] = useState(() => readPreference('deshi.name', ''));
-  const [token, setToken] = useState<TokenId>('rickshaw');
+  const [token, setToken] = useState<TokenId>('tiger');
   const [code, setCode] = useState(inviteCode.toUpperCase());
   const [cashDraft, setCashDraft] = useState<string | null>(null);
   const startingCash = cashDraft ?? String(session?.view.startingCash ?? STARTING_CASH);
   const disabled = !!pending || connection !== 'online';
-  const tokenLabel = tab === 'join' ? 'Preferred token' : 'Pick your token';
+  const tokenLabel = tab === 'join' ? 'Preferred avatar' : 'Pick your avatar';
 
   function moveTab(event: KeyboardEvent<HTMLDivElement>) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -94,8 +94,8 @@ export default function Lobby({ client, copied, onCopy, onLeave, onRules }: {
     <div className="segmented-tabs lobby-tabs" role="tablist" aria-label="Choose room action" onKeyDown={moveTab}><button id="create-room-tab" type="button" role="tab" tabIndex={tab === 'create' ? 0 : -1} aria-selected={tab === 'create'} aria-controls="room-form" onClick={() => setTab('create')} className={tab === 'create' ? 'active' : ''}>Create room</button><button id="join-room-tab" type="button" role="tab" tabIndex={tab === 'join' ? 0 : -1} aria-selected={tab === 'join'} aria-controls="room-form" onClick={() => setTab('join')} className={tab === 'join' ? 'active' : ''}>Join room</button></div>
     <form id="room-form" role="tabpanel" aria-labelledby={`${tab}-room-tab`} onSubmit={submit} className="room-form"><div className="room-form-fields"><div><label className="field-label" htmlFor="player-name">Your name</label><div className="input-with-icon"><UserIcon /><input id="player-name" autoComplete="nickname" placeholder="What should we call you?" value={name} minLength={1} maxLength={24} required disabled={disabled} onChange={(event) => { setName(event.target.value); writePreference('deshi.name', event.target.value); }} /></div></div>
       {tab === 'join' ? <div><label className="field-label" htmlFor="room-code-input">Room code</label><div className="input-with-icon code-input"><LockKeyhole size={16} /><input id="room-code-input" autoComplete="off" placeholder="Enter invite code" value={code} minLength={4} maxLength={12} required disabled={disabled} onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} /></div></div> : <StartingCashField value={startingCash} disabled={disabled} onChange={setCashDraft} />}</div>
-      <div className="token-label"><span className="field-label">{tokenLabel}</span><span>{TOKENS.find((item) => item.id === token)?.name}</span></div><div className="token-picker" role="group" aria-label={tokenLabel}>{TOKENS.map((item) => <button className={`token-option ${token === item.id ? 'selected' : ''}`} key={item.id} type="button" aria-label={`Choose ${item.name} token`} aria-pressed={token === item.id} title={item.name} disabled={disabled} onClick={() => setToken(item.id)}><TokenIcon token={item.id} size={21} />{token === item.id && <span className="token-check"><Check size={7} strokeWidth={4} /></span>}</button>)}</div>
-      {tab === 'join' && <p className="form-note">If it’s taken, we’ll pick an available token.</p>}
+      <div className="token-label"><span className="field-label">{tokenLabel}</span><span>{TOKENS.find((item) => item.id === token)?.name}</span></div><div className="token-picker" role="group" aria-label={tokenLabel}>{TOKENS.map((item) => <button className={`token-option ${token === item.id ? 'selected' : ''}`} key={item.id} type="button" aria-label={`Choose ${item.name} avatar`} aria-pressed={token === item.id} title={item.name} disabled={disabled} onClick={() => setToken(item.id)}><TokenAvatar token={item.id} />{token === item.id && <span className="token-check"><Check size={9} strokeWidth={4} /></span>}</button>)}</div>
+      {tab === 'join' && <p className="form-note">If it’s taken, we’ll pick an available avatar.</p>}
       <button className="button button-primary create-button" type="submit" disabled={disabled}>{pending === 'create' || pending === 'join' ? <><Spinner />{tab === 'create' ? 'Creating your room…' : 'Joining your room…'}</> : <>{tab === 'create' ? 'Create room' : 'Join room'}<ArrowRight size={17} /></>}</button><p className="form-note"><LockKeyhole size={11} />Private room. Your rules. Your people.</p>
     </form><div className="practice-section"><span>Just warming up?</span><button className="practice-button" type="button" disabled={disabled} onClick={practice}>{pending === 'practice' ? <Spinner /> : <Bot size={18} />}<span>Practice with bots</span><ArrowUpRight size={15} /></button><p>One you. Three bots. Zero pressure.</p></div>
     <div className="lobby-reassurance"><span><Check size={12} />No sign-up</span><i /><span><Check size={12} />No real money</span></div>
