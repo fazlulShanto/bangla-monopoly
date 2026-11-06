@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { applyAction, applyTradeAction, chooseBotAction, chooseBotTradeAction, createGame, gameView, RuleError, type GameState } from './game';
 import { roomCommandSchema, type PrivateSeat, type RoomDocument } from './schema';
 import { StorageConflict, type RoomStore } from './store';
+import { applyUnoAction, chooseUnoBotAction, createUnoGame, unoGameView } from './uno';
 
 export type Credentials = { resumeToken: string; connectionId: string };
 export type RoomEvent = { event: 'room:updated'; data: { revision: number } } | { event: 'room:closed'; data: { reason: 'expired' | 'replaced' | 'left' } };
@@ -126,6 +127,7 @@ export class RoomService {
       const room = await this.room(found._id, true);
       const seat = room.seats.find(candidate => candidate.resumeHash === hashToken(input.resumeToken) && !candidate.left);
       if (!seat || seat.entryRequestId !== input.requestId || seat.entryKind !== kind || ('code' in input && room._id !== input.code)) throw new RuleError('This entry credential already belongs to another request.');
+      if (input.gameType !== undefined && input.gameType !== room.gameType) throw new RuleError('That invite code belongs to a different game.');
       return this.entered(room, seat, input.resumeToken);
     });
   }
@@ -136,13 +138,13 @@ export class RoomService {
         const recovered = await this.recoverEntry(input, 'create');
         if (recovered) return recovered;
         const now = Date.now();
-        const room: RoomDocument = { _id: roomCode(), kind: input.kind, revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, requests: [], createdAt: now, updatedAt: now, writeId: '' };
+        const room: RoomDocument = { _id: roomCode(), kind: input.kind, gameType: input.gameType ?? 'tycoon', revision: 0, hostId: '', startingCash: input.startingCash ?? STARTING_CASH, seats: [], game: null, unoGame: null, requests: [], createdAt: now, updatedAt: now, writeId: '' };
         const host = this.newSeat(room, { ...input, kind: 'human', resumeHash: hashToken(input.resumeToken), ready: true, entryRequestId: input.requestId, entryKind: 'create' });
         room.seats.push(host);
         room.hostId = host.id;
         if (input.kind === 'practice') {
           for (let index = 0; index < (input.botCount ?? 3); index += 1) this.addBot(room);
-          room.game = createGame({ players: room.seats, seed: randomInt(1, 0x100000000), startingCash: room.startingCash });
+          this.startGame(room);
         }
         const saved = await this.commit(room, null);
         return this.entered(saved, host, input.resumeToken);
@@ -157,8 +159,9 @@ export class RoomService {
         if (recovered) return recovered;
         return this.queued(input.code, async () => {
           const current = await this.room(input.code);
+          if (input.gameType !== undefined && input.gameType !== current.gameType) throw new RuleError('That invite code belongs to a different game.');
           if (current.kind !== 'friends') throw new RuleError('Practice games are private. Create a friends room to invite someone.');
-          if (current.game) throw new RuleError('This game has already started. You can only rejoin with your saved seat.');
+          if (current.game || current.unoGame) throw new RuleError('This game has already started. You can only rejoin with your saved seat.');
           const token = current.seats.some(seat => seat.token === input.token)
             ? TOKENS.find(candidate => !current.seats.some(seat => seat.token === candidate.id))?.id
             : input.token;
@@ -213,7 +216,7 @@ export class RoomService {
     return this.withSeat(credentials, async ({ room: current, seat }) => {
       const previous = current.requests.find(request => request.playerId === seat.id && request.requestId === input.requestId && request.kind === 'command');
       if (previous) return { ok: true, revision: previous.revision, view: this.view(current, seat.id) };
-      if (current.revision !== input.expectedRevision) return { ok: false, code: 'STALE_REVISION', message: 'The room changed. Your board has been refreshed. Try that action again.', view: this.view(current, seat.id) };
+      if (current.revision !== input.expectedRevision) return { ok: false, code: 'STALE_REVISION', message: 'The room changed. Your game has been refreshed. Try that action again.', view: this.view(current, seat.id) };
       const next = structuredClone(current);
       const actor = next.seats.find(candidate => candidate.id === seat.id);
       if (!actor) throw new SessionError('INVALID_SESSION');
@@ -233,8 +236,9 @@ export class RoomService {
 
   private applyCommand(room: RoomDocument, actor: PrivateSeat, command: RoomCommand): void {
     if (command.type === 'leave') {
-      if (room.game) {
-        if (room.game.status === 'playing' && room.game.players.find(player => player.id === actor.id)?.status === 'active') room.game = applyAction(room.game, actor.id, { type: 'resign' });
+      if (room.game || room.unoGame) {
+        if (room.game?.status === 'playing' && room.game.players.find(player => player.id === actor.id)?.status === 'active') room.game = applyAction(room.game, actor.id, { type: 'resign' });
+        if (room.unoGame?.status === 'playing' && room.unoGame.players.find(player => player.id === actor.id)?.status === 'active') room.unoGame = applyUnoAction(room.unoGame, actor.id, { type: 'resign' });
         actor.left = true;
         actor.resumeHash = null;
       } else room.seats = room.seats.filter(seat => seat.id !== actor.id);
@@ -242,20 +246,37 @@ export class RoomService {
       return;
     }
     if (command.type === 'play') {
+      if (room.gameType !== 'tycoon') throw new RuleError('This action is only available in Deshi Tycoon.');
       if (!room.game) throw new RuleError('The host has not started the game yet.');
       room.game = applyAction(room.game, actor.id, command.action);
       return;
     }
     if (command.type === 'trade') {
+      if (room.gameType !== 'tycoon') throw new RuleError('Trading is only available in Deshi Tycoon.');
       if (!room.game) throw new RuleError('The host has not started the game yet.');
       room.game = applyTradeAction(room.game, actor.id, command.action);
       return;
     }
-    if (room.game) throw new RuleError('The lobby is closed because the game has started.');
+    if (command.type === 'uno') {
+      if (room.gameType !== 'uno') throw new RuleError('This action is only available in UNO.');
+      if (!room.unoGame) throw new RuleError('The host has not started the game yet.');
+      room.unoGame = applyUnoAction(room.unoGame, actor.id, command.action);
+      return;
+    }
+    if (command.type === 'rematch') {
+      if (actor.id !== room.hostId) throw new RuleError('Only the host can manage this room.');
+      if (room.gameType !== 'uno' || room.unoGame?.status !== 'finished') throw new RuleError('Finish the UNO game before starting a rematch.');
+      room.unoGame = null;
+      room.seats = room.seats.filter(seat => !seat.left);
+      for (const seat of room.seats) seat.ready = seat.kind === 'bot' || seat.id === room.hostId;
+      return;
+    }
+    if (room.game || room.unoGame) throw new RuleError('The lobby is closed because the game has started.');
     if (command.type === 'ready') { actor.ready = command.ready; return; }
     if (actor.id !== room.hostId) throw new RuleError('Only the host can manage this room.');
     switch (command.type) {
       case 'setStartingCash':
+        if (room.gameType !== 'tycoon') throw new RuleError('Starting cash is only available in Deshi Tycoon.');
         room.startingCash = command.startingCash;
         break;
       case 'addBot': this.addBot(room); break;
@@ -268,9 +289,15 @@ export class RoomService {
       case 'start':
         if (room.seats.length < 2) throw new RuleError('Invite a friend or add a bot first.');
         if (room.seats.some(seat => seat.kind === 'human' && (!seat.ready || !this.active(seat)))) throw new RuleError('Every human player must be connected and ready.');
-        room.game = createGame({ players: room.seats, seed: randomInt(1, 0x100000000), startingCash: room.startingCash });
+        this.startGame(room);
         break;
     }
+  }
+
+  private startGame(room: RoomDocument): void {
+    const seed = randomInt(1, 0x100000000);
+    if (room.gameType === 'uno') room.unoGame = createUnoGame({ players: room.seats, seed });
+    else room.game = createGame({ players: room.seats, seed, startingCash: room.startingCash });
   }
 
   async disconnect(credentials: Credentials): Promise<SnapshotReply> {
@@ -299,9 +326,10 @@ export class RoomService {
   }
 
   private view(room: RoomDocument, playerId: string): RoomView {
-    return { code: room._id, kind: room.kind, revision: room.revision, hostId: room.hostId, startingCash: room.startingCash,
+    return { code: room._id, kind: room.kind, gameType: room.gameType, revision: room.revision, hostId: room.hostId, startingCash: room.startingCash,
       seats: room.seats.map(seat => ({ id: seat.id, name: seat.name, color: seat.color, token: seat.token, kind: seat.kind, ready: seat.ready, connected: this.active(seat) })),
-      game: room.game ? gameView(room.game, playerId) : null };
+      game: room.game ? gameView(room.game, playerId) : null,
+      unoGame: room.unoGame ? unoGameView(room.unoGame, playerId) : null };
   }
 
   private async publish(channels: string[], message: RoomEvent): Promise<void> {
@@ -318,10 +346,16 @@ export class RoomService {
     const previous = this.timers.get(room._id);
     if (previous) clearTimeout(previous);
     this.timers.delete(room._id);
-    if (this.closing || room.game?.status !== 'playing') return;
+    if (this.closing || !room.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
+    if (room.unoGame?.status === 'playing') {
+      const actor = room.seats.find(seat => room.unoGame?.status === 'playing' && seat.id === room.unoGame.turnPlayerId);
+      if (actor?.kind === 'bot') this.setBotTimer(room._id, this.botDelay);
+      return;
+    }
+    if (room.game?.status !== 'playing') return;
     const actor = room.seats.find(seat => room.game?.status === 'playing' && seat.id === room.game.turn.playerId);
     const hasBotTrade = room.game.trades.some(trade => room.seats.some(seat => seat.id === trade.toPlayerId && seat.kind === 'bot'));
-    if ((actor?.kind !== 'bot' && !hasBotTrade) || !room.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
+    if (actor?.kind !== 'bot' && !hasBotTrade) return;
     this.setBotTimer(room._id, this.botDelay);
   }
 
@@ -336,7 +370,21 @@ export class RoomService {
     try {
       await this.queued(code, async () => {
         const current = await this.room(code, reload);
-        if (this.closing || current.game?.status !== 'playing' || !current.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
+        if (this.closing || !current.seats.some(seat => seat.kind === 'human' && this.active(seat))) return;
+        if (current.unoGame?.status === 'playing') {
+          const actor = current.seats.find(seat => current.unoGame?.status === 'playing' && seat.id === current.unoGame.turnPlayerId && seat.kind === 'bot');
+          if (!actor) return;
+          const action = chooseUnoBotAction(current.unoGame, actor.id);
+          if (!action) return;
+          const next = structuredClone(current);
+          next.unoGame = applyUnoAction(current.unoGame, actor.id, action);
+          const saved = await this.commit(next, current.revision);
+          this.botFailures.delete(code);
+          await this.broadcast(saved);
+          this.schedule(saved);
+          return;
+        }
+        if (current.game?.status !== 'playing') return;
         let game: GameState = current.game;
         const trade = current.game.trades.find(offer => current.seats.some(seat => seat.id === offer.toPlayerId && seat.kind === 'bot'));
         if (trade) {

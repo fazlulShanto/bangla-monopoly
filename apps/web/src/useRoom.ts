@@ -4,7 +4,7 @@ import { GameConnectionError, readReply } from './response';
 import { GAME_CONFIG, LEGACY_TOKEN_IDS, TOKEN_IDS, resolveTokenId } from '@deshi/game';
 import type {
   CommandReply, CreateRoom, EnterReply, Failure,
-  JoinRoom, RealtimeConfig, RoomCommand, RoomView, SavedTokenId, SnapshotReply,
+  GameType, JoinRoom, RealtimeConfig, RoomCommand, RoomView, SavedTokenId, SnapshotReply,
 } from '@deshi/game';
 
 type Session = { playerId: string; view: RoomView };
@@ -20,41 +20,43 @@ type Controller = {
   command: (input: RoomCommand) => Promise<boolean>;
   reconnect: () => void;
 };
-const RESUME_KEY = 'deshi.resume';
-const ENTRY_KEY = 'deshi.pending-entry';
-
-function savedResume(): string | null {
-  try { return sessionStorage.getItem(RESUME_KEY); } catch { return null; }
+function storageKeys(gameType: GameType) {
+  const prefix = gameType === 'uno' ? 'uno' : 'deshi';
+  return { resume: `${prefix}.resume`, entry: `${prefix}.pending-entry` };
 }
 
-function saveResume(token: string) {
-  try { sessionStorage.setItem(RESUME_KEY, token); }
+function savedResume(gameType: GameType): string | null {
+  try { return sessionStorage.getItem(storageKeys(gameType).resume); } catch { return null; }
+}
+
+function saveResume(token: string, gameType: GameType) {
+  try { sessionStorage.setItem(storageKeys(gameType).resume, token); }
   catch { throw new Error('Allow session storage in this browser to save your seat before joining.'); }
 }
 
-function clearSavedEntry() {
-  try { sessionStorage.removeItem(ENTRY_KEY); } catch { /* The in-memory receipt can still be used. */ }
+function clearSavedEntry(gameType: GameType) {
+  try { sessionStorage.removeItem(storageKeys(gameType).entry); } catch { /* The in-memory receipt can still be used. */ }
 }
 
-function clearSavedSeat() {
-  clearSavedEntry();
-  try { sessionStorage.removeItem(RESUME_KEY); } catch { /* The current seat is already cleared in memory. */ }
+function clearSavedSeat(gameType: GameType) {
+  clearSavedEntry(gameType);
+  try { sessionStorage.removeItem(storageKeys(gameType).resume); } catch { /* The current seat is already cleared in memory. */ }
 }
 
 function isToken(value: unknown): value is SavedTokenId {
   return TOKEN_IDS.some((token) => token === value) || LEGACY_TOKEN_IDS.some((token) => token === value);
 }
 
-function savedEntry(): Entry | null {
+function savedEntry(gameType: GameType): Entry | null {
   try {
-    const value: unknown = JSON.parse(sessionStorage.getItem(ENTRY_KEY) ?? 'null');
+    const value: unknown = JSON.parse(sessionStorage.getItem(storageKeys(gameType).entry) ?? 'null');
     if (!value || typeof value !== 'object' || !('kind' in value) || !('input' in value)) return null;
     const input = value.input;
     if (!input || typeof input !== 'object' || !('name' in input) || typeof input.name !== 'string'
       || !('token' in input) || !isToken(input.token)
       || !('requestId' in input) || typeof input.requestId !== 'string'
       || !('resumeToken' in input) || typeof input.resumeToken !== 'string') return null;
-    const common = { name: input.name, token: resolveTokenId(input.token), requestId: input.requestId, resumeToken: input.resumeToken };
+    const common = { gameType, name: input.name, token: resolveTokenId(input.token), requestId: input.requestId, resumeToken: input.resumeToken };
     if (value.kind === 'join' && 'code' in input && typeof input.code === 'string') {
       return { kind: 'join', input: { ...common, code: input.code } };
     }
@@ -71,12 +73,12 @@ function savedEntry(): Entry | null {
   return null;
 }
 
-function saveEntry(entry: Entry) {
+function saveEntry(entry: Entry, gameType: GameType) {
   try {
-    sessionStorage.setItem(ENTRY_KEY, JSON.stringify(entry));
-    saveResume(entry.input.resumeToken);
+    sessionStorage.setItem(storageKeys(gameType).entry, JSON.stringify(entry));
+    saveResume(entry.input.resumeToken, gameType);
   } catch {
-    clearSavedSeat();
+    clearSavedSeat(gameType);
     throw new Error('Allow session storage in this browser to save your seat before joining.');
   }
 }
@@ -97,7 +99,7 @@ function messageOf(cause: unknown) {
   return cause instanceof Error ? cause.message : 'Could not reach the game server. Try reconnecting.';
 }
 
-export function useRoom() {
+export function useRoom(gameType: GameType = 'tycoon') {
   const [connection, setConnection] = useState<Connection>('connecting');
   const [session, setSession] = useState<Session | null>(null);
   const [pending, setPending] = useState<string | null>(null);
@@ -114,8 +116,8 @@ export function useRoom() {
     let subscribed = false;
     let seat: Seat | null = null;
     let current: Session | null = null;
-    let entry = savedEntry();
-    let resumeToken = entry?.input.resumeToken ?? savedResume();
+    let entry = savedEntry(gameType);
+    let resumeToken = entry?.input.resumeToken ?? savedResume(gameType);
     let restoring = !!resumeToken;
     let busy = false;
     let snapshotBusy = false;
@@ -129,9 +131,11 @@ export function useRoom() {
 
     function updateConnection() {
       if (!active) return;
-      setConnection(socketConnected && apiReachable
+      const next = socketConnected && apiReachable
         ? restoring || (seat && !subscribed) ? 'restoring' : 'online'
-        : initialConnection ? 'connecting' : 'offline');
+        : initialConnection ? 'connecting' : 'offline';
+      setConnection(next);
+      if (next === 'online') setError((previous) => previous?.kind === 'transport' ? null : previous);
     }
 
     function headers(auth: Seat) {
@@ -183,7 +187,7 @@ export function useRoom() {
       subscribed = false;
       snapshotQueued = false;
       heartbeatQueued = false;
-      clearSavedSeat();
+      clearSavedSeat(gameType);
       if (!active) return;
       setSession(null);
       if (reason === 'left') inviteAddress(null);
@@ -268,10 +272,10 @@ export function useRoom() {
         return false;
       }
       if (seat) pusher?.unsubscribe(seat.channel);
-      saveResume(reply.resumeToken);
+      saveResume(reply.resumeToken, gameType);
       resumeToken = reply.resumeToken;
       entry = null;
-      clearSavedEntry();
+      clearSavedEntry(gameType);
       seat = { resumeToken: reply.resumeToken, connectionId: reply.connectionId, channel: reply.channel };
       current = null;
       applySnapshot(reply.view, reply.playerId);
@@ -337,18 +341,20 @@ export function useRoom() {
         });
         const disconnected = () => {
           if (!active) return;
+          const wasConnected = socketConnected;
           socketConnected = false;
           subscribed = false;
           restoring = !!seat || !!resumeToken;
           initialConnection = false;
           updateConnection();
+          if (wasConnected) showError('We cannot reach the live game connection. We will keep trying.', 'transport');
         };
         pusher.connection.bind('connecting', () => { if (socketConnected) disconnected(); });
         pusher.connection.bind('disconnected', disconnected);
         pusher.connection.bind('unavailable', disconnected);
         pusher.connection.bind('failed', disconnected);
         pusher.connection.bind('error', () => {
-          if (active) showError('We cannot reach the live game connection. We will keep trying.', 'transport');
+          if (active && !socketConnected) showError('We cannot reach the live game connection. We will keep trying.', 'transport');
         });
       } catch (cause) {
         if (active) {
@@ -377,8 +383,8 @@ export function useRoom() {
     const controls: Controller = {
       create: (input) => run(input.kind === 'practice' ? 'practice' : 'create', async () => {
         if (seat || resumeToken) return false;
-        const receipt: Entry = { kind: 'create', input: { ...input, requestId: crypto.randomUUID(), resumeToken: newResumeToken() } };
-        saveEntry(receipt);
+        const receipt: Entry = { kind: 'create', input: { ...input, gameType, requestId: crypto.randomUUID(), resumeToken: newResumeToken() } };
+        saveEntry(receipt, gameType);
         entry = receipt;
         resumeToken = receipt.input.resumeToken;
         restoring = true;
@@ -387,15 +393,15 @@ export function useRoom() {
       }),
       join: (input) => run('join', async () => {
         if (seat || resumeToken) return false;
-        const receipt: Entry = { kind: 'join', input: { ...input, requestId: crypto.randomUUID(), resumeToken: newResumeToken() } };
-        saveEntry(receipt);
+        const receipt: Entry = { kind: 'join', input: { ...input, gameType, requestId: crypto.randomUUID(), resumeToken: newResumeToken() } };
+        saveEntry(receipt, gameType);
         entry = receipt;
         resumeToken = receipt.input.resumeToken;
         restoring = true;
         updateConnection();
         return enter(receipt);
       }),
-      command: (input) => run(input.type === 'play' ? input.action.type : input.type, async () => {
+      command: (input) => run(input.type === 'play' || input.type === 'uno' ? input.action.type : input.type, async () => {
         if (!seat || !current) return false;
         const auth = seat;
         const reply = await request<CommandReply>('/api/commands', {
@@ -445,7 +451,7 @@ export function useRoom() {
       for (const abort of requests) abort.abort();
       pusher?.disconnect();
     };
-  }, []);
+  }, [gameType]);
 
   return {
     session, connection, pending, error: error?.message ?? null,

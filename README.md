@@ -1,6 +1,6 @@
 # Deshi Tycoon
 
-A property board game for Bangladesh game nights. Create a private room, share its link, and play with two to six people. Add bots to fill empty seats or start a practice game.
+Deshi Tycoon and UNO for game nights with friends. Choose a game, create a private room, and share its link. Both games support two to six players. Add bots to fill empty seats or start a practice game.
 
 The forty-space board uses Bangladesh cities, airports, and landmarks. Mymensingh is the first property after Go. Dhaka is the most expensive property at ৳450, followed by Chittagong at ৳400 and Cox's Bazar at ৳350. Kuakata Sea Beach is the vacation square. Game money uses taka.
 
@@ -15,13 +15,13 @@ docker compose up -d soketi
 bun run dev
 ```
 
-Open [the game](http://localhost:5173). The frontend runs directly under Vite on port 5173. Bun handles the game API on port 3001. Soketi runs in Docker on port 6001. Vite forwards API requests to Bun and Pusher WebSocket connections to Soketi.
+Open [the game catalogue](http://localhost:5173) and choose Deshi Tycoon or [UNO](http://localhost:5173/games/uno). Room invite links open the correct game's lobby directly. The frontend runs directly under Vite on port 5173. Bun handles the game API on port 3001. Soketi runs in Docker on port 6001. Vite forwards API requests to Bun and Pusher WebSocket connections to Soketi.
 
 `bun run setup` generates missing Soketi app credentials in `.env`. It preserves existing settings and does not print the generated values.
 
 Use one Bun backend for each `MONGO_DB`. Before switching from the full Docker stack to development, run `docker compose stop app gateway`. Soketi can keep running.
 
-Choose starting cash, create a room, and copy the invitation. A friend enters a name, chooses a token, and joins. The host can change and save starting cash in the lobby before the game starts. Each human marks themselves ready. The host starts the game. For play across different computers, use an address that reaches your server or the VPS deployment below.
+Create a room and copy the invitation. A friend enters a name, chooses a token, and joins. For Deshi Tycoon, the host chooses starting cash and can change it in the lobby. Each human marks themselves ready. The host starts the game. For play across different computers, use an address that reaches your server or the VPS deployment below.
 
 ## Check the game
 
@@ -32,7 +32,7 @@ bun run build
 bun run test:realtime
 ```
 
-The realtime check requires the running Soketi service and your MongoDB connection. It starts its own backend processes and uses real Pusher private subscriptions. A separate `deshi_tycoon_smoke_*` database holds the test game. The check restarts the backend and verifies saved seats, balances, positions, dice, authorization, and duplicate request handling. It does not change existing game rooms.
+The realtime check requires the running Soketi service and your MongoDB connection. It starts its own backend processes and uses real Pusher private subscriptions. A separate `deshi_tycoon_smoke_*` database holds the test game. The check restarts the backend and verifies saved seats, balances, positions, dice, authorization, and duplicate request handling. It does not change existing game rooms. This smoke check covers Deshi Tycoon; Bun tests cover UNO rules and room behavior.
 
 ## Deploy on Dokploy
 
@@ -65,7 +65,7 @@ docker compose --profile https up -d --build
 
 Caddy requests the certificate and forwards HTTP to Bun and WebSocket traffic to Soketi. `/api/health` checks MongoDB and Soketi readiness. Keep one Bun app replica. Room writes run in one server process, and MongoDB stores saved room state.
 
-## Game rules
+## Deshi Tycoon rules
 
 Each player starts with the amount chosen by the host: ৳500–৳10,000 in whole taka, with a default of ৳1,500. The same setting applies to practice games and bots. Starting cash cannot change after play begins. Passing Go pays ৳200. Roll two dice, buy an unowned property or pass, and pay rent on another player's property. Collect a full color group to build evenly. Four houses can become a hotel. Airport rent increases with the number of airports owned. Utility rent depends on the dice.
 
@@ -85,12 +85,27 @@ Use the Trades tab to offer another player cash, properties, or a combination of
 
 This version uses house rules. An unpaid mandatory bill causes immediate bankruptcy. The last solvent player wins. Auctions, mortgages, and building sales are not included.
 
+## UNO
+
+Open `/games/uno` to create or join a private table. Games have two to six seats, including bots. Practice starts a round against one to five bots. The host can add or remove bots in the lobby.
+
+Each player receives seven cards from a 108-card deck. The first discard is a number card. Each game is one round: the first player to empty their hand wins. The host's **Play again** action returns everyone to the lobby for another round.
+
+- Match the discard's color, number, or action symbol. A Wild lets you choose the next color.
+- Skip misses the next player. Reverse changes direction; with two players, it acts as a skip.
+- +2 and Wild +4 make the next player draw and miss their turn. Draw cards cannot stack.
+- Wild +4 is legal only when you have no card of the current color. The server checks this rule, so there are no challenges.
+- You can draw one card even if you have a playable card. If the drawn card is playable, play it or pass. Otherwise, your turn ends automatically. After drawing, only the new card can be played.
+- With two cards left, turn on **Say UNO** before playing. If you forget, call **UNO!** before another player catches you. A catch adds two cards. The catch window closes at the next valid play, draw, pass, or resignation.
+
+The server owns the deck, hands, legal moves, and turn order. Each player receives only their own cards; opponents see card counts and card backs. UNO shares the existing authenticated HTTP API, Soketi updates, and MongoDB storage. Each game keeps a separate browser session credential, so switching games preserves its seat.
+
 ## Repository
 
 - `apps/web` contains the React interface, CSS board and dice, and Pusher client.
 - `apps/server` contains the Bun HTTP server, room coordinator, rules engine, bots, and MongoDB store.
-- `packages/game` contains the shared board, types, and HTTP contracts.
+- `packages/game` contains the shared board, card types, and HTTP contracts.
 
-The server controls dice, balances, ownership, and legal actions. Authenticated HTTP requests carry commands and personalized game snapshots. Private Pusher channels carry revision hints. MongoDB saves game state, request receipts, and hashed reconnect credentials. The browser saves its private credential before creating a seat. A refresh can restore that seat. Invitation links contain the room code and never the resume token.
+The server controls dice, balances, ownership, cards, and legal actions. Authenticated HTTP requests carry commands and personalized game snapshots. Private Pusher channels carry revision hints. MongoDB saves game state, request receipts, and hashed reconnect credentials. The browser saves its private credential before creating a seat. A refresh can restore that seat. Invitation links contain the room code and never the resume token.
 
 The frontend uses [React](https://react.dev/) and [Vite](https://vite.dev/guide/). Realtime uses self-hosted [Soketi](https://github.com/soketi/soketi) with the [Pusher protocol](https://pusher.com/docs/channels/using_channels/private-channels/).

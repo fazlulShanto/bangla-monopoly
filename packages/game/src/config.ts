@@ -10,6 +10,7 @@ export const GAME_CONFIG = {
   goSalary: 200,
   bail: 50,
   airportPrice: 200,
+  airportRent: [25, 50, 100, 200],
   utilityPrice: 150,
   taxes: { income: 200, wealth: 100 },
   properties: {
@@ -41,6 +42,7 @@ export const GAME_CONFIG = {
   goSalary: number;
   bail: number;
   airportPrice: number;
+  airportRent: readonly [number, number, number, number];
   utilityPrice: number;
   taxes: { income: number; wealth: number };
   properties: Record<string, StreetValues>;

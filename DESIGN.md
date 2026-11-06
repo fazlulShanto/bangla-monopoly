@@ -29,7 +29,7 @@ Use a bundled expressive sans font, generous spacing between panels, compact gam
 
 Show a numbered, player-colored key badge at the bottom-left of each owned property and beside its owner in the player list. Beside the badge, show an up arrow and the current level for upgraded streets: 1–4 for houses and 5 for a hotel. Keep these badges distinct from the moving player tokens and the property color groups. Show the owner's full name in property details.
 
-The welcome screen places room setup and game information in an overlay over a board preview. After a room is created or joined, show the board, actual seats, and the room code. Empty seats invite friends. Do not present fictional friends or activity as a live match.
+The home screen presents available games as cards. Selecting Deshi Tycoon opens its welcome screen, which places room setup and game information in an overlay over a board preview. Existing room links open the Deshi Tycoon lobby directly. After a room is created or joined, show the board, actual seats, and the room code. Empty seats invite friends. Do not present fictional friends or activity as a live match.
 
 During an active game, use the board centre for dice, turn controls, and recent activity. Remove the centre wordmark, flag, slogans, and decorative brand labels. Keep branding in the lobby and app header. Show the newest real events first and reduce the number of visible events on small boards.
 

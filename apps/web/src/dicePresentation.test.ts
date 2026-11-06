@@ -73,7 +73,7 @@ describe('dice presentation', () => {
 
   test('the log adapter uses the latest exact name, pair, and doubles punctuation', () => {
     const room: RoomView = {
-      code: 'TEST', kind: 'friends', revision: 99, hostId: 'player', startingCash: 1500,
+      code: 'TEST', kind: 'friends', gameType: 'tycoon', revision: 99, hostId: 'player', startingCash: 1500, unoGame: null,
       seats: [{ id: 'player', name: 'Rafi', color: '#abc', token: 'kingfisher', kind: 'human', connected: true, ready: true }],
       game: {
         status: 'playing', turn: { playerId: 'player', phase: 'end' }, turnNumber: 1,

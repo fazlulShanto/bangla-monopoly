@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Bot, Check, CheckCheck, CircleHelp, Copy, Dices, Link, LockKeyhole, Plus, ShieldCheck, UsersRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bot, Check, CheckCheck, CircleHelp, Copy, Dices, Link, LockKeyhole, Plus, ShieldCheck, UsersRound } from 'lucide-react';
 import { GAME_CONFIG, STARTING_CASH, TOKENS, type TokenId } from '@deshi/game';
 import type { useRoom } from './useRoom';
 import { money, Spinner, TokenAvatar } from './ui';
@@ -87,6 +87,7 @@ export default function Lobby({ client, copied, onCopy, onLeave, onRules }: {
   }
 
   return <section className="welcome-overlay" aria-labelledby="welcome-title"><div className="welcome-intro">
+    <a className="welcome-back" href="/"><ArrowLeft size={16} />All games</a>
     <div className="welcome-brand"><span className="brand-mark"><Dices size={24} strokeWidth={2.3} /></span><span className="brand-name">DESHI TYCOON<span>BIG DREAMS. DESHI STREETS.</span></span></div>
     <div className="welcome-copy"><h1 id="welcome-title">A little luck.<br />A lot of Bangladesh.</h1><p>A board full of Bangladesh. A table full of your favorite people.</p><div className="welcome-facts"><span>2–6 players</span><span>40 spaces</span><span>Private rooms</span></div></div>
     <button className="welcome-rules" type="button" onClick={onRules}><CircleHelp size={18} /><span>How to play</span><ArrowUpRight size={15} /></button>

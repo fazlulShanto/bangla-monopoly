@@ -10,6 +10,9 @@ import Lobby, { readPreference, writePreference } from './Lobby';
 import LocationArt, { locationArtwork } from './LocationArt';
 import Players from './Players';
 import PropertyBuildings from './PropertyBuildings';
+import GameCatalog from './GameCatalog';
+import { isTycoonPage, isUnoPage } from './navigation';
+import UnoGame from './UnoGame';
 import { BangladeshFlag, Modal, money, Spinner, TileIcon } from './ui';
 import { useRoom } from './useRoom';
 
@@ -54,6 +57,10 @@ function TileDetails({ tile, room, playerId, disabled, pending, onAction, onClos
 }
 
 export default function App() {
+  return isUnoPage(window.location) ? <UnoGame /> : isTycoonPage(window.location) ? <TycoonGame /> : <GameCatalog />;
+}
+
+function TycoonGame() {
   const client = useRoom();
   const { session, connection, pending, error } = client;
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -69,6 +76,7 @@ export default function App() {
   const disabled = !!pending || connection !== 'online';
 
   useEffect(() => {
+    document.title = 'Deshi Tycoon — Big dreams. Deshi streets.';
     const handler = () => setFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handler);
     return () => {

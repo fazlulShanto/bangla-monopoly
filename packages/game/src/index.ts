@@ -1,4 +1,5 @@
 import { GAME_CONFIG, type StreetValues } from './config';
+import type { UnoAction, UnoGameView } from './uno';
 export { GAME_CONFIG } from './config';
 
 export const TOKEN_IDS = ['tiger', 'cat', 'kingfisher', 'fish', 'deer', 'buffalo'] as const;
@@ -110,20 +111,24 @@ export type GameView = {
   turnNumber: number;
 } & ({ status: 'playing'; turn: Turn } | { status: 'finished'; winnerId: string });
 export type SeatView = { id: string; name: string; color: string; token: TokenId; kind: 'human' | 'bot'; connected: boolean; ready: boolean };
-export type RoomView = { code: string; kind: 'friends' | 'practice'; revision: number; hostId: string; startingCash: number; seats: SeatView[]; game: GameView | null };
+export type GameType = 'tycoon' | 'uno';
+export type RoomView = { code: string; kind: 'friends' | 'practice'; gameType: GameType; revision: number; hostId: string; startingCash: number; seats: SeatView[]; game: GameView | null; unoGame: UnoGameView | null };
 export type RoomCommand =
   | { type: 'ready'; ready: boolean }
   | { type: 'addBot' }
   | { type: 'removeBot'; playerId: string }
   | { type: 'setStartingCash'; startingCash: number }
   | { type: 'start' }
+  | { type: 'rematch' }
   | { type: 'leave' }
   | { type: 'play'; action: GameAction }
+  | { type: 'uno'; action: UnoAction }
   | { type: 'trade'; action: TradeAction };
 export type Failure = { ok: false; code: string; message: string; view?: RoomView };
-export type CreateRoom = { kind: 'friends' | 'practice'; name: string; token: TokenId; botCount?: number; startingCash?: number; requestId: string; resumeToken: string };
-export type JoinRoom = { code: string; name: string; token: TokenId; requestId: string; resumeToken: string };
+export type CreateRoom = { kind: 'friends' | 'practice'; gameType?: GameType; name: string; token: TokenId; botCount?: number; startingCash?: number; requestId: string; resumeToken: string };
+export type JoinRoom = { code: string; gameType?: GameType; name: string; token: TokenId; requestId: string; resumeToken: string };
 export type EnterReply = Failure | { ok: true; playerId: string; resumeToken: string; connectionId: string; channel: string; view: RoomView };
 export type SnapshotReply = Failure | { ok: true; playerId: string; view: RoomView; channel: string };
 export type CommandReply = Failure | { ok: true; revision: number; view: RoomView };
 export type RealtimeConfig = { key: string; url?: string };
+export * from './uno';
