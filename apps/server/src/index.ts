@@ -81,7 +81,7 @@ export async function createApp(options: { store: RoomStore; realtime?: Realtime
         }
         if (url.pathname.startsWith('/api/')) {
           if (!allowedOrigin(request)) return json({ ok: false, code: 'FORBIDDEN', message: 'This origin is not allowed.' } satisfies Failure, 403);
-          if (url.pathname === '/api/realtime' && request.method === 'GET') return json({ key: realtime.key });
+          if (url.pathname === '/api/realtime' && request.method === 'GET') return json({ key: realtime.key, ...(realtime.url ? { url: realtime.url } : {}) });
           if (url.pathname === '/api/session' && request.method === 'GET') return reply(await rooms.snapshot(credentials(request)));
           if (request.method !== 'POST') return json({ ok: false, code: 'NOT_FOUND', message: 'Endpoint not found.' } satisfies Failure, 404);
           const length = Number(request.headers.get('content-length') ?? 0);

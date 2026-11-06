@@ -36,20 +36,14 @@ The realtime check requires the running Soketi service and your MongoDB connecti
 
 ## Deploy on Dokploy
 
-The Dokploy stack runs two services: Bun serves the built frontend and game API, and Soketi handles live updates. MongoDB and Redis must be reachable from the containers. Dokploy's Traefik proxy handles HTTPS and routes requests; the stack does not start Caddy.
+Bun serves the frontend and game API. A separate Soketi service handles live updates through its Redis adapter. MongoDB and Redis must be reachable from their respective containers. Dokploy's proxy handles HTTPS; these services do not start Caddy.
 
-1. Push the repository to a Git provider that Dokploy can access. Create a **Compose** service, select **Docker Compose** rather than Stack, and set the Compose path to `./compose.dokploy.yaml`.
-2. Enable **Isolated Deployments** so both services share a network with Traefik.
-3. In the Compose service's **Environment** tab, set `MONGO_URI`, `REDIS_URI`, `SOKETI_APP_ID`, `SOKETI_APP_KEY`, and `SOKETI_APP_SECRET`. Optionally set `MONGO_DB`; it defaults to `deshi_tycoon`. Use the same Soketi credentials for both services. `bun run setup` can generate them in a local `.env` without printing them. Do not use `localhost` for a database running outside the container.
-4. Point your domain to the Dokploy server. In **Domains**, add two HTTPS routes for the same domain:
-
-   | Service | Path | Container port | Strip Path |
-   | --- | --- | --- | --- |
-   | `app` | `/` | `3001` | Off |
-   | `soketi` | `/app` | `6001` | Off |
-
-   Leave **Internal Path** empty. The browser uses `/app/*` for its WebSocket connection, so Traefik must forward that path unchanged. Select a certificate for both routes.
-5. Deploy the Compose service. Visit `/api/health` on the domain, then create a room in two browser sessions and check that changes appear in both.
+1. Push the repository to a Git provider that Dokploy can access.
+2. Create a Dokploy **Compose** service for Soketi, using `./compose.soketi.dokploy.yaml`. In its **Environment** tab, set `REDIS_URI`, `SOKETI_APP_ID`, `SOKETI_APP_KEY`, and `SOKETI_APP_SECRET`. The image includes the Redis adapter configuration. Do not use `localhost` for an external Redis server.
+3. Add an HTTPS domain for Soketi. Route `/` to `soketi` on container port `6001`, without stripping the path. Deploy the service.
+4. Create a second **Compose** service using `./compose.dokploy.yaml`. Set `MONGO_URI`, `SOKETI_PUBLIC_URL`, `SOKETI_APP_ID`, `SOKETI_APP_KEY`, and `SOKETI_APP_SECRET` in its **Environment** tab. Set `SOKETI_PUBLIC_URL` to the Soketi HTTPS origin, such as `https://ws.example.com`. Optionally set `MONGO_DB`; it defaults to `deshi_tycoon`. Use the same Soketi credentials in both services.
+5. Add an HTTPS domain for the game. Route `/` to `app` on container port `3001`, without stripping the path. Deploy the game service.
+6. Visit `/api/health` on the game domain. Then create a room in two browser sessions and check that changes appear in both.
 
 The Soketi image includes its configuration file, so Dokploy does not need a file mount from the Git checkout. The credentials and database URIs stay in Dokploy's environment settings. Keep one Bun app instance per `MONGO_DB`, including during updates. Room coordination runs in one process, and MongoDB stores saved room state.
 

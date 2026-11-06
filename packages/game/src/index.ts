@@ -113,4 +113,4 @@ export type EnterReply = Failure | { ok: true; playerId: string; resumeToken: st
 export type SnapshotReply = Failure | { ok: true; playerId: string; view: RoomView; chat: ChatMessage[]; channel: string };
 export type CommandReply = Failure | { ok: true; revision: number; view: RoomView; chat: ChatMessage[] };
 export type ChatReply = Failure | { ok: true; view: RoomView; chat: ChatMessage[] };
-export type RealtimeConfig = { key: string };
+export type RealtimeConfig = { key: string; url?: string };

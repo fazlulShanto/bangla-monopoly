@@ -32,12 +32,13 @@ function TileDetails({ tile, room, playerId, disabled, pending, onAction, onClos
   const ownedGroupCount = owner ? group.filter((item) => room?.game?.deeds[item.id]?.ownerId === owner.id).length : 0;
   const artwork = locationArtwork(tile);
   const development = !deed || deed.level === 0 ? 'Unimproved' : deed.level === 5 ? 'Hotel' : `${deed.level} ${deed.level === 1 ? 'house' : 'houses'}`;
-  return <Modal title={tile.name} onClose={onClose} className="tile-modal">
+  return <Modal title={tile.name} onClose={onClose} className="tile-modal"><div className="deed-layout"><div className="deed-overview">
     {artwork ? <div className="deed-landscape"><LocationArt tile={tile} />{tile.kind === 'street' && <><PropertyBuildings level={deed?.level ?? 0} className="deed-buildings" /><span className="deed-landscape-strip" style={{ backgroundColor: tile.color }} /></>}</div>
       : <div className="deed-banner" style={tile.kind === 'street' ? { backgroundColor: tile.color, color: '#081321', textShadow: 'none' } : undefined}><TileIcon tile={tile} size={35} /><span>{tile.kind === 'street' ? 'A PIECE OF YOUR NEXT EMPIRE' : tile.kind === 'airport' ? 'CONNECT THE WHOLE COUNTRY' : tile.kind === 'utility' ? 'KEEP BANGLADESH MOVING' : 'THE JOURNEY HAS A FEW TWISTS'}</span></div>}
     {tile.kind === 'street' && <p className="deed-development">{development}</p>}
     {'price' in tile && <div className="deed-price-row"><span>Property price</span><strong>{money(tile.price)}</strong></div>}
     {'price' in tile && <div className="deed-owner">{owner ? <><span className="owner-marker" style={{ backgroundColor: owner.color }} /><span>Owned by <strong>{owner.id === playerId ? 'you' : owner.name}</strong></span></> : <><Building2 size={16} /><span>Available from the bank</span></>}</div>}
+    </div><div className="deed-details">
     {tile.kind === 'street' && <><div className="rent-heading"><h3>Rent at a glance</h3><span>Build for {money(tile.buildCost)}</span></div><div className="rent-table">{tile.rent.map((rent, level) => <div className={deed && deed.level === level ? 'current-level' : ''} key={level}><span>{level === 0 ? 'Unimproved' : level === 5 ? 'Hotel' : `${level} ${level === 1 ? 'house' : 'houses'}`}{deed && deed.level === level && <Check size={11} />}</span><strong>{money(rent * (level === 0 && ownedGroupCount === group.length ? 2 : 1))}</strong></div>)}</div><div className="color-group"><h3>The complete color group</h3><div>{group.map((item) => <span key={item.id}><i style={{ backgroundColor: tile.color }} />{item.name}{room?.game?.deeds[item.id]?.ownerId === owner?.id && owner && <Check size={11} />}</span>)}</div><p>Own the full set to double unimproved rent and build evenly.</p></div></>}
     {tile.kind === 'airport' && <div className="special-tile-detail"><h3>More connections. Better returns.</h3><p>Rent depends on the owner’s total airports.</p><div className="rent-table">{[25, 50, 100, 200].map((rent, index) => <div key={rent}><span>{index + 1} {index === 0 ? 'airport' : 'airports'}</span><strong>{money(rent)}</strong></div>)}</div></div>}
     {tile.kind === 'utility' && <div className="special-tile-detail"><h3>Every empire needs the essentials.</h3><p>With one utility, rent is <strong>4 × the dice total</strong>. With both utilities, rent is <strong>10 × the dice total</strong>.</p></div>}
@@ -49,7 +50,7 @@ function TileDetails({ tile, room, playerId, disabled, pending, onAction, onClos
     {tile.kind === 'jail' && <div className="special-tile-detail"><h3>Just visiting? Carry on.</h3><p>Landing here normally is a free visit. If sent to jail, pay {money(BAIL)} or try to roll doubles to leave.</p></div>}
     {tile.kind === 'goToJail' && <div className="special-tile-detail"><h3>A detour you didn’t plan.</h3><p>Go directly to jail. Your turn ends and you do not collect a Go salary on the way.</p></div>}
     {buildAction?.type === 'build' && tile.kind === 'street' && <button className="button button-primary deed-build" disabled={disabled} onClick={() => onAction(buildAction)}>{pending === 'build' ? <Spinner /> : <House size={17} />}{deed?.level === 4 ? 'Build a hotel' : 'Build a house'}<span>{money(tile.buildCost)}</span></button>}
-  </Modal>;
+  </div></div></Modal>;
 }
 
 export default function App() {

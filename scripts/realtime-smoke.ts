@@ -11,7 +11,7 @@ export type StartServer = () => Promise<Running>;
 type Entered = Extract<EnterReply, { ok: true }>;
 type Peer = { entry: Entered; view: RoomView; chat: ChatMessage[]; pusher: Pusher; hintCount: number; replaced: boolean };
 const authResponseSchema = z.object({ auth: z.string() });
-const configSchema = z.object({ key: z.string().min(1) });
+const configSchema = z.object({ key: z.string().min(1), url: z.string().url().optional() });
 const hintSchema = z.object({ revision: z.number().int().nonnegative() }).strict();
 const closedSchema = z.object({ reason: z.enum(['expired', 'replaced', 'left']) }).strict();
 const token = () => randomBytes(32).toString('base64url');
@@ -38,9 +38,11 @@ export async function runRealtimeSmoke(startServer: StartServer): Promise<{ code
   }
   async function connect(entry: Entered): Promise<Peer> {
     const config = configSchema.parse(await fetch(`${server.url}/api/realtime`).then(response => response.json()));
+    const url = config.url ? new URL(config.url) : undefined;
+    const port = Number(url ? (url.port || (url.protocol === 'https:' ? 443 : 80)) : (process.env.SMOKE_WS_PORT ?? process.env.SOKETI_PORT ?? 6001));
     const pusher = new Pusher(config.key, {
-      wsHost: process.env.SMOKE_WS_HOST ?? process.env.SOKETI_HOST ?? '127.0.0.1', wsPort: Number(process.env.SMOKE_WS_PORT ?? process.env.SOKETI_PORT ?? 6001), forceTLS: false,
-      enabledTransports: ['ws'], disableStats: true, cluster: 'mt1',
+      wsHost: url?.hostname ?? process.env.SMOKE_WS_HOST ?? process.env.SOKETI_HOST ?? '127.0.0.1', wsPort: port, wssPort: port, forceTLS: url?.protocol === 'https:',
+      enabledTransports: ['ws', 'wss'], disableStats: true, cluster: 'mt1',
       channelAuthorization: { endpoint: '/api/pusher/auth', transport: 'ajax', customHandler: (params, callback) => {
         void fetch(`${server.url}/api/pusher/auth`, { method: 'POST', headers: { ...headers(entry), 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ socket_id: params.socketId, channel_name: params.channelName }) })
           .then(async response => { if (!response.ok) throw new Error('Private channel authorization failed'); callback(null, authResponseSchema.parse(await response.json())); })

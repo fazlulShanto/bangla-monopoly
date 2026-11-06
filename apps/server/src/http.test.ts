@@ -6,12 +6,12 @@ import { GAME_CONFIG, type EnterReply, type Failure } from '@deshi/game';
 
 test('HTTP validates private channel ownership, errors, safe configuration, and health', async () => {
   const app = await createApp({ store: new MemoryRoomStore(), port: 0, host: '127.0.0.1', realtime: {
-    key: 'test-public-key', async publish() {}, authorize(socketId, channel) { return { auth: `${socketId}:${channel}` }; }, async ping() { return true; },
+    key: 'test-public-key', url: 'https://soketi.example:8443', async publish() {}, authorize(socketId, channel) { return { auth: `${socketId}:${channel}` }; }, async ping() { return true; },
   } });
   const url = `http://127.0.0.1:${app.port}`;
   try {
     const config = await fetch(`${url}/api/realtime`).then(response => response.json());
-    expect(config).toEqual({ key: 'test-public-key' });
+    expect(config).toEqual({ key: 'test-public-key', url: 'https://soketi.example:8443' });
     const created: EnterReply = await fetch(`${url}/api/rooms`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'friends', name: 'Asha', token: 'rickshaw', requestId: randomUUID(), resumeToken: randomBytes(32).toString('base64url') }) }).then(response => response.json());
     if (!created.ok) throw new Error(created.message);
     const headers = { Authorization: `Bearer ${created.resumeToken}`, 'X-Connection-Id': created.connectionId, 'Content-Type': 'application/x-www-form-urlencoded' };

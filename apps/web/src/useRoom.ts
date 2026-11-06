@@ -313,13 +313,14 @@ export function useRoom() {
         const config = await request<RealtimeConfig>('/api/realtime');
         if (!active) return;
         if (!config || typeof config.key !== 'string' || !config.key) throw new Error('The game server has no realtime connection configured.');
-        const port = Number(window.location.port || (window.location.protocol === 'https:' ? 443 : 80));
+        const url = new URL(config.url ?? window.location.origin);
+        const port = Number(url.port || (url.protocol === 'https:' ? 443 : 80));
         pusher = new Pusher(config.key, {
           cluster: 'mt1',
-          wsHost: window.location.hostname,
+          wsHost: url.hostname,
           wsPort: port,
           wssPort: port,
-          forceTLS: window.location.protocol === 'https:',
+          forceTLS: url.protocol === 'https:',
           enabledTransports: ['ws', 'wss'],
           disableStats: true,
           channelAuthorization: {
